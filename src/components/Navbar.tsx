@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import { useLang } from "./LanguageProvider";
+import { useAuth } from "./AuthProvider";
 
 export default function Navbar() {
   const { locale, t, toggle } = useLang();
+  const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
 
   const links = [
@@ -18,7 +20,7 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-bg-primary)]/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Logo */}
-        <a href="#" className="flex items-center gap-2">
+        <a href="/" className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-[var(--color-accent)] flex items-center justify-center text-white font-bold text-sm">
             CV
           </div>
@@ -50,13 +52,27 @@ export default function Navbar() {
             {locale === "id" ? "EN" : "ID"}
           </button>
 
-          {/* CTA */}
-          <a
-            href="#pricing"
-            className="hidden rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-light)] glow-blue sm:block"
-          >
-            {t.nav.cta}
-          </a>
+          {/* Auth button */}
+          {!loading && user ? (
+            <a
+              href="/dashboard"
+              className="hidden items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm transition hover:border-[var(--color-accent)] sm:flex"
+            >
+              {user.photo ? (
+                <img src={user.photo} alt="" className="h-5 w-5 rounded-full" />
+              ) : (
+                <User size={14} className="text-[var(--color-accent)]" />
+              )}
+              <span className="text-[var(--color-text-secondary)]">{user.name}</span>
+            </a>
+          ) : (
+            <a
+              href="/login"
+              className="hidden rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-light)] glow-blue sm:block"
+            >
+              {locale === "id" ? "Masuk" : "Login"}
+            </a>
+          )}
 
           {/* Mobile menu toggle */}
           <button
@@ -81,13 +97,23 @@ export default function Navbar() {
               {l.label}
             </a>
           ))}
-          <a
-            href="#pricing"
-            onClick={() => setOpen(false)}
-            className="mt-3 block rounded-lg bg-[var(--color-accent)] px-4 py-2 text-center text-sm font-semibold text-white"
-          >
-            {t.nav.cta}
-          </a>
+          {!loading && user ? (
+            <a
+              href="/dashboard"
+              onClick={() => setOpen(false)}
+              className="mt-3 block rounded-lg border border-[var(--color-accent)] px-4 py-2 text-center text-sm font-semibold text-[var(--color-accent)]"
+            >
+              Dashboard
+            </a>
+          ) : (
+            <a
+              href="/login"
+              onClick={() => setOpen(false)}
+              className="mt-3 block rounded-lg bg-[var(--color-accent)] px-4 py-2 text-center text-sm font-semibold text-white"
+            >
+              {locale === "id" ? "Masuk" : "Login"}
+            </a>
+          )}
         </div>
       )}
     </nav>

@@ -49,7 +49,7 @@ export default function TelegramLogin() {
     script.async = true;
     script.setAttribute(
       "data-telegram-login",
-      process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "CryptoVisionID",
+      process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "CryptoVisionIDbot",
     );
     script.setAttribute("data-size", "large");
     script.setAttribute("data-radius", "12");

@@ -32,6 +32,8 @@ export default function Pricing() {
     {
       name: p.dual_name,
       price: usd ? p.dual_price_usd : p.dual_price_idr,
+      originalPrice: usd ? p.dual_original_usd : p.dual_original_idr,
+      discount: p.dual_discount,
       features: [p.dual_f1, p.dual_f2, p.dual_f3, p.dual_f4],
       cta: p.cta,
       popular: true,
@@ -119,11 +121,21 @@ export default function Pricing() {
                 )}
               </div>
 
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-bold">{plan.price}</span>
-                <span className="text-sm text-[var(--color-text-muted)]">
-                  {t.pricing.monthly}
-                </span>
+              <div className="mt-3">
+                {plan.originalPrice && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm text-[var(--color-text-muted)] line-through">{plan.originalPrice}</span>
+                    <span className="rounded-full bg-[var(--color-success)]/20 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-success)]">
+                      {plan.discount}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold">{plan.price}</span>
+                  <span className="text-sm text-[var(--color-text-muted)]">
+                    {t.pricing.monthly}
+                  </span>
+                </div>
               </div>
 
               <ul className="mt-6 space-y-3">

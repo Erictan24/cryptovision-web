@@ -45,9 +45,7 @@ export default function LoginPage() {
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-8">
           {/* Logo */}
           <div className="mb-6 flex flex-col items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-accent)] text-white font-bold text-lg">
-              CV
-            </div>
+            <img src="/logo.jpg" alt="CryptoVision" className="h-12 w-12 rounded-xl object-cover" />
             <h1 className="text-xl font-bold">
               {locale === "id" ? "Masuk ke CryptoVision" : "Login to CryptoVision"}
             </h1>

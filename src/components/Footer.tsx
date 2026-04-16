@@ -13,9 +13,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-[var(--color-accent)] flex items-center justify-center text-white font-bold text-sm">
-                CV
-              </div>
+              <img src="/logo.jpg" alt="CryptoVision" className="h-8 w-8 rounded-lg object-cover" />
               <span className="text-lg font-bold">CryptoVision</span>
             </div>
             <p className="mt-3 text-sm text-[var(--color-text-muted)]">

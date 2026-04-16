@@ -76,9 +76,7 @@ export default function DashboardPage() {
       <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-card)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <a href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-[var(--color-accent)] flex items-center justify-center text-white font-bold text-sm">
-              CV
-            </div>
+            <img src="/logo.jpg" alt="CryptoVision" className="h-8 w-8 rounded-lg object-cover" />
             <span className="text-lg font-bold">CryptoVision</span>
           </a>
 

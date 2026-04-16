@@ -21,9 +21,7 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-[var(--color-accent)] flex items-center justify-center text-white font-bold text-sm">
-            CV
-          </div>
+          <img src="/logo.jpg" alt="CryptoVision" className="h-8 w-8 rounded-lg object-cover" />
           <span className="text-lg font-bold text-[var(--color-text-primary)] glow-text">
             CryptoVision
           </span>

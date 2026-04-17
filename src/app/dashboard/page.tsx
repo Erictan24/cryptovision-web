@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useLang } from "@/components/LanguageProvider";
 import {
@@ -12,9 +12,12 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+type Sub = { plan: string; planName: string; status: string } | null;
+
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth();
   const { locale, t, toggle } = useLang();
+  const [sub, setSub] = useState<Sub>(null);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -22,6 +25,16 @@ export default function DashboardPage() {
       window.location.href = "/login";
     }
   }, [user, loading]);
+
+  // Fetch subscription status
+  useEffect(() => {
+    if (user) {
+      fetch("/api/subscription")
+        .then((r) => r.json())
+        .then((d) => setSub(d.subscription || null))
+        .catch(() => {});
+    }
+  }, [user]);
 
   if (loading || !user) {
     return (
@@ -31,30 +44,36 @@ export default function DashboardPage() {
     );
   }
 
+  const isActive = sub?.status === "active";
+
   const cards = [
     {
       icon: CreditCard,
       title: locale === "id" ? "Status Langganan" : "Subscription",
-      value: "Free",
-      desc:
-        locale === "id"
-          ? "Upgrade untuk auto trade & signal real-time"
-          : "Upgrade for auto trade & real-time signals",
-      action: locale === "id" ? "Upgrade" : "Upgrade",
-      href: "/checkout",
-      color: "text-[var(--color-accent)]",
+      value: isActive ? sub!.planName : "Free",
+      desc: isActive
+        ? (locale === "id" ? "Langganan aktif" : "Subscription active")
+        : (locale === "id" ? "Upgrade untuk auto trade & signal real-time" : "Upgrade for auto trade & real-time signals"),
+      action: isActive
+        ? (locale === "id" ? "Detail" : "Details")
+        : (locale === "id" ? "Upgrade" : "Upgrade"),
+      href: isActive ? "/dashboard" : "/checkout",
+      color: isActive ? "text-[var(--color-success)]" : "text-[var(--color-accent)]",
     },
     {
       icon: Bot,
       title: locale === "id" ? "Status Bot" : "Bot Status",
-      value: locale === "id" ? "Belum Aktif" : "Not Active",
-      desc:
-        locale === "id"
-          ? "Aktifkan bot setelah upgrade & connect exchange"
-          : "Activate bot after upgrade & connect exchange",
-      action: locale === "id" ? "Lihat Paket" : "View Plans",
-      href: "/checkout",
-      color: "text-[var(--color-text-muted)]",
+      value: isActive
+        ? (locale === "id" ? "Aktif" : "Active")
+        : (locale === "id" ? "Belum Aktif" : "Not Active"),
+      desc: isActive
+        ? (locale === "id" ? "Bot sedang berjalan" : "Bot is running")
+        : (locale === "id" ? "Aktifkan bot setelah upgrade & connect exchange" : "Activate bot after upgrade & connect exchange"),
+      action: isActive
+        ? (locale === "id" ? "Pengaturan" : "Settings")
+        : (locale === "id" ? "Lihat Paket" : "View Plans"),
+      href: isActive ? "/dashboard" : "/checkout",
+      color: isActive ? "text-[var(--color-success)]" : "text-[var(--color-text-muted)]",
     },
     {
       icon: Link2,

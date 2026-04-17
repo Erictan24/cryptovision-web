@@ -41,7 +41,7 @@ export default function DashboardPage() {
           ? "Upgrade untuk auto trade & signal real-time"
           : "Upgrade for auto trade & real-time signals",
       action: locale === "id" ? "Upgrade" : "Upgrade",
-      href: "/#pricing",
+      href: "/checkout",
       color: "text-[var(--color-accent)]",
     },
     {
@@ -53,7 +53,7 @@ export default function DashboardPage() {
           ? "Aktifkan bot setelah upgrade & connect exchange"
           : "Activate bot after upgrade & connect exchange",
       action: locale === "id" ? "Lihat Paket" : "View Plans",
-      href: "/#pricing",
+      href: "/checkout",
       color: "text-[var(--color-text-muted)]",
     },
     {

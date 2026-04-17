@@ -12,6 +12,7 @@ export default function Pricing() {
   const p = t.pricing;
   const plans = [
     {
+      key: "free",
       name: p.free_name,
       price: usd ? p.free_price_usd : p.free_price_idr,
       features: [p.free_f1, p.free_f2, p.free_f3, p.free_f4],
@@ -19,8 +20,10 @@ export default function Pricing() {
       popular: false,
       accent: false,
       comingSoon: false,
+      href: "/login",
     },
     {
+      key: "single",
       name: p.single_name,
       price: usd ? p.single_price_usd : p.single_price_idr,
       features: [p.single_f1, p.single_f2, p.single_f3, p.single_f4],
@@ -28,8 +31,10 @@ export default function Pricing() {
       popular: false,
       accent: false,
       comingSoon: false,
+      href: "/checkout?plan=single",
     },
     {
+      key: "dual",
       name: p.dual_name,
       price: usd ? p.dual_price_usd : p.dual_price_idr,
       originalPrice: usd ? p.dual_original_usd : p.dual_original_idr,
@@ -39,15 +44,18 @@ export default function Pricing() {
       popular: true,
       accent: true,
       comingSoon: false,
+      href: "/checkout?plan=dual",
     },
     {
+      key: "indicator",
       name: p.indicator_name,
       price: usd ? p.indicator_price_usd : p.indicator_price_idr,
       features: [p.indicator_f1, p.indicator_f2, p.indicator_f3, p.indicator_f4],
       cta: p.cta,
       popular: false,
       accent: false,
-      comingSoon: true, // entire card is coming soon
+      comingSoon: true,
+      href: "#",
     },
   ];
 
@@ -153,9 +161,9 @@ export default function Pricing() {
                 ))}
               </ul>
 
-              <button
-                disabled={plan.comingSoon}
-                className={`mt-6 w-full rounded-xl py-2.5 text-sm font-semibold transition ${
+              <a
+                href={plan.comingSoon ? undefined : plan.href}
+                className={`mt-6 block w-full rounded-xl py-2.5 text-center text-sm font-semibold transition ${
                   plan.comingSoon
                     ? "border border-[var(--color-border)] text-[var(--color-text-muted)] cursor-not-allowed opacity-50"
                     : plan.accent
@@ -164,7 +172,7 @@ export default function Pricing() {
                 }`}
               >
                 {plan.cta}
-              </button>
+              </a>
             </motion.div>
           ))}
         </div>

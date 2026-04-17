@@ -38,7 +38,7 @@ export default function Stats() {
               transition={{ delay: i * 0.1 }}
               className="flex flex-col items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6 text-center"
             >
-              <span className="text-3xl font-bold bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-light)] bg-clip-text text-transparent sm:text-4xl">
+              <span className="text-3xl font-bold bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-accent)] bg-clip-text text-transparent sm:text-4xl">
                 {s.value}
               </span>
               <span className="text-sm text-[var(--color-text-muted)]">

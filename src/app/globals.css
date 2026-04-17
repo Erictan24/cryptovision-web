@@ -4,16 +4,18 @@
   --color-bg-primary: #0a0e17;
   --color-bg-card: #111827;
   --color-bg-card-hover: #1a2332;
-  --color-accent: #3b82f6;
-  --color-accent-light: #60a5fa;
-  --color-accent-glow: rgba(59, 130, 246, 0.3);
+  --color-accent: #3B9BD9;
+  --color-accent-light: #5BB8F0;
+  --color-accent-glow: rgba(59, 155, 217, 0.3);
+  --color-gold: #E5B82A;
+  --color-gold-light: #F0CB45;
   --color-text-primary: #f1f5f9;
   --color-text-secondary: #94a3b8;
   --color-text-muted: #64748b;
   --color-success: #22c55e;
   --color-danger: #ef4444;
   --color-border: #1e293b;
-  --color-border-accent: rgba(59, 130, 246, 0.3);
+  --color-border-accent: rgba(59, 155, 217, 0.3);
   --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono: "Cascadia Code", "Fira Code", ui-monospace, monospace;
 }
@@ -26,7 +28,7 @@ body {
 
 /* Neon glow effects */
 .glow-blue {
-  box-shadow: 0 0 20px var(--color-accent-glow), 0 0 60px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 20px var(--color-accent-glow), 0 0 60px rgba(59, 155, 217, 0.1);
 }
 
 .glow-text {
@@ -35,24 +37,24 @@ body {
 
 .glow-border {
   border-color: var(--color-border-accent);
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 15px rgba(59, 155, 217, 0.1);
 }
 
 /* Grid background pattern */
 .bg-grid {
   background-image:
-    linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(59, 155, 217, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 155, 217, 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 
 /* Gradient overlays */
 .gradient-hero {
-  background: radial-gradient(ellipse at 50% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 60%);
+  background: radial-gradient(ellipse at 50% 0%, rgba(59, 155, 217, 0.15) 0%, transparent 60%);
 }
 
 .gradient-section {
-  background: linear-gradient(180deg, transparent 0%, rgba(59, 130, 246, 0.03) 50%, transparent 100%);
+  background: linear-gradient(180deg, transparent 0%, rgba(59, 155, 217, 0.03) 50%, transparent 100%);
 }
 
 /* Card hover glow */
@@ -60,8 +62,8 @@ body {
   transition: all 0.3s ease;
 }
 .card-glow:hover {
-  border-color: rgba(59, 130, 246, 0.4);
-  box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 155, 217, 0.4);
+  box-shadow: 0 0 30px rgba(59, 155, 217, 0.15);
   transform: translateY(-2px);
 }
 

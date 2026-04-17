@@ -115,8 +115,8 @@ export default function Pricing() {
               }`}
             >
               {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-3 py-0.5 text-xs font-semibold text-white">
-                  <Star size={10} fill="white" /> {t.pricing.popular}
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-[var(--color-gold)] px-3 py-0.5 text-xs font-semibold text-black">
+                  <Star size={10} fill="black" /> {t.pricing.popular}
                 </span>
               )}
 
@@ -133,7 +133,7 @@ export default function Pricing() {
                 {plan.originalPrice && (
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm text-[var(--color-text-muted)] line-through">{plan.originalPrice}</span>
-                    <span className="rounded-full bg-[var(--color-success)]/20 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-success)]">
+                    <span className="rounded-full bg-[var(--color-gold)]/20 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-gold)]">
                       {plan.discount}
                     </span>
                   </div>

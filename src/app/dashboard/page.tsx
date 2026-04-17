@@ -12,7 +12,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-type Sub = { plan: string; planName: string; status: string } | null;
+type Sub = { plan: string; planName?: string; plan_name?: string; status: string } | null;
 
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth();
@@ -45,19 +45,21 @@ export default function DashboardPage() {
   }
 
   const isActive = sub?.status === "active";
+  // DB returns snake_case (plan_name), handle both
+  const planName = sub?.plan_name || sub?.planName || sub?.plan || "";
 
   const cards = [
     {
       icon: CreditCard,
       title: locale === "id" ? "Status Langganan" : "Subscription",
-      value: isActive ? sub!.planName : "Free",
+      value: isActive ? planName : "Free",
       desc: isActive
-        ? (locale === "id" ? "Langganan aktif" : "Subscription active")
+        ? (locale === "id" ? `Langganan ${planName} aktif` : `${planName} subscription active`)
         : (locale === "id" ? "Upgrade untuk auto trade & signal real-time" : "Upgrade for auto trade & real-time signals"),
       action: isActive
-        ? (locale === "id" ? "Detail" : "Details")
+        ? (locale === "id" ? "Kelola" : "Manage")
         : (locale === "id" ? "Upgrade" : "Upgrade"),
-      href: isActive ? "/dashboard" : "/checkout",
+      href: "/checkout",
       color: isActive ? "text-[var(--color-success)]" : "text-[var(--color-accent)]",
     },
     {
@@ -72,7 +74,7 @@ export default function DashboardPage() {
       action: isActive
         ? (locale === "id" ? "Pengaturan" : "Settings")
         : (locale === "id" ? "Lihat Paket" : "View Plans"),
-      href: isActive ? "/dashboard" : "/checkout",
+      href: "/checkout",
       color: isActive ? "text-[var(--color-success)]" : "text-[var(--color-text-muted)]",
     },
     {
@@ -209,7 +211,7 @@ export default function DashboardPage() {
                 {locale === "id" ? "Paket" : "Plan"}
               </span>
               <span className={isActive ? "text-[var(--color-success)] font-semibold" : ""}>
-                {isActive ? sub!.planName : "Free"}
+                {isActive ? planName : "Free"}
               </span>
             </div>
           </div>

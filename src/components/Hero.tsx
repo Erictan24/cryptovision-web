@@ -37,7 +37,7 @@ export default function Hero() {
             <span className="text-[var(--color-text-primary)]">
               {t.hero.title.split(" ").slice(0, -2).join(" ")}{" "}
             </span>
-            <span className="bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-light)] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-accent)] bg-clip-text text-transparent">
               {t.hero.title.split(" ").slice(-2).join(" ")}
             </span>
           </h1>

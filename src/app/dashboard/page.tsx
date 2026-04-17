@@ -208,7 +208,9 @@ export default function DashboardPage() {
               <span className="text-[var(--color-text-muted)]">
                 {locale === "id" ? "Paket" : "Plan"}
               </span>
-              <span>Free</span>
+              <span className={isActive ? "text-[var(--color-success)] font-semibold" : ""}>
+                {isActive ? sub!.planName : "Free"}
+              </span>
             </div>
           </div>
         </div>

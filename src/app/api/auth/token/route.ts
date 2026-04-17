@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Create session
+  // Create session + save user to DB
   const user: SessionUser = {
     id: data.userId,
     name: data.name,
@@ -79,6 +79,14 @@ export async function GET(req: NextRequest) {
     provider: "telegram",
   };
   await createSession(user);
+
+  // Save user to database
+  try {
+    const { upsertUser } = await import("@/lib/db");
+    await upsertUser(data.userId, data.name, data.username, data.photo);
+  } catch {
+    // DB not initialized yet, ignore
+  }
 
   return NextResponse.json({ ok: true, user });
 }

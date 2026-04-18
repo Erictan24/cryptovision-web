@@ -16,8 +16,10 @@ import {
 } from "lucide-react";
 
 const PLANS: Record<string, { name: string; nameEn: string; priceIDR: string; priceUSD: string }> = {
-  bot: { name: "Bot Scalping + Swing", nameEn: "Scalping + Swing Bot", priceIDR: "Rp 449.000", priceUSD: "$35" },
-  indicator: { name: "Indikator TradingView", nameEn: "TradingView Indicator", priceIDR: "Rp 199.000", priceUSD: "$15" },
+  m1: { name: "Bot 1 Bulan", nameEn: "Bot 1 Month", priceIDR: "Rp 449.000", priceUSD: "$35" },
+  m3: { name: "Bot 3 Bulan", nameEn: "Bot 3 Months", priceIDR: "Rp 999.000", priceUSD: "$79" },
+  y1: { name: "Bot 1 Tahun", nameEn: "Bot 1 Year", priceIDR: "Rp 2.999.000", priceUSD: "$239" },
+  lt: { name: "Bot Lifetime", nameEn: "Bot Lifetime", priceIDR: "Rp 4.999.000", priceUSD: "$399" },
 };
 
 const METHODS = [

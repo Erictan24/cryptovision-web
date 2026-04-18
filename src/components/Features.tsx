@@ -24,14 +24,6 @@ export default function Features() {
       accent: "from-green-500 to-emerald-400",
       badge: null,
     },
-    {
-      icon: BarChart3,
-      title: t.features.indicator_title,
-      desc: t.features.indicator_desc,
-      features: [t.features.indicator_f1, t.features.indicator_f2, t.features.indicator_f3, t.features.indicator_f4],
-      accent: "from-purple-500 to-violet-400",
-      badge: t.features.coming_soon,
-    },
   ];
 
   return (
@@ -51,7 +43,7 @@ export default function Features() {
         </motion.div>
 
         {/* Cards */}
-        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-14 grid gap-6 sm:grid-cols-2 max-w-3xl mx-auto">
           {cards.map((c, i) => (
             <motion.div
               key={c.title}

@@ -55,7 +55,6 @@ export function getOrdersByUser(userId: number): Order[] {
 }
 
 export const PLANS: Record<string, { name: string; priceIDR: string; priceUSD: string; amountIDR: number }> = {
-  single: { name: "Bot Scalping / Swing", priceIDR: "Rp 249.000", priceUSD: "$19", amountIDR: 249000 },
-  dual: { name: "Scalping + Swing", priceIDR: "Rp 449.000", priceUSD: "$35", amountIDR: 449000 },
+  bot: { name: "Bot Scalping + Swing", priceIDR: "Rp 449.000", priceUSD: "$35", amountIDR: 449000 },
   indicator: { name: "Indikator TradingView", priceIDR: "Rp 199.000", priceUSD: "$15", amountIDR: 199000 },
 };

@@ -16,8 +16,7 @@ import {
 } from "lucide-react";
 
 const PLANS: Record<string, { name: string; nameEn: string; priceIDR: string; priceUSD: string }> = {
-  single: { name: "Bot Scalping / Swing", nameEn: "Scalping / Swing Bot", priceIDR: "Rp 249.000", priceUSD: "$19" },
-  dual: { name: "Scalping + Swing", nameEn: "Scalping + Swing", priceIDR: "Rp 449.000", priceUSD: "$35" },
+  bot: { name: "Bot Scalping + Swing", nameEn: "Scalping + Swing Bot", priceIDR: "Rp 449.000", priceUSD: "$35" },
   indicator: { name: "Indikator TradingView", nameEn: "TradingView Indicator", priceIDR: "Rp 199.000", priceUSD: "$15" },
 };
 

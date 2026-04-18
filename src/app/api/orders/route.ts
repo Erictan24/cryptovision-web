@@ -4,8 +4,7 @@ import { getSession } from "@/lib/auth";
 import { createOrderDb, getOrderDb, getOrdersByUserDb, updateOrderStatusDb } from "@/lib/db";
 
 const PLANS: Record<string, { name: string; priceIDR: string; priceUSD: string }> = {
-  single: { name: "Bot Scalping / Swing", priceIDR: "Rp 249.000", priceUSD: "$19" },
-  dual: { name: "Scalping + Swing", priceIDR: "Rp 449.000", priceUSD: "$35" },
+  bot: { name: "Bot Scalping + Swing", priceIDR: "Rp 449.000", priceUSD: "$35" },
   indicator: { name: "Indikator TradingView", priceIDR: "Rp 199.000", priceUSD: "$15" },
 };
 

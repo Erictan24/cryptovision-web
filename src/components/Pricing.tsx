@@ -23,28 +23,15 @@ export default function Pricing() {
       href: "/login",
     },
     {
-      key: "single",
-      name: p.single_name,
-      price: usd ? p.single_price_usd : p.single_price_idr,
-      features: [p.single_f1, p.single_f2, p.single_f3, p.single_f4],
-      cta: p.cta,
-      popular: false,
-      accent: false,
-      comingSoon: false,
-      href: "/checkout?plan=single",
-    },
-    {
-      key: "dual",
-      name: p.dual_name,
-      price: usd ? p.dual_price_usd : p.dual_price_idr,
-      originalPrice: usd ? p.dual_original_usd : p.dual_original_idr,
-      discount: p.dual_discount,
-      features: [p.dual_f1, p.dual_f2, p.dual_f3, p.dual_f4],
+      key: "bot",
+      name: p.bot_name,
+      price: usd ? p.bot_price_usd : p.bot_price_idr,
+      features: [p.bot_f1, p.bot_f2, p.bot_f3, p.bot_f4],
       cta: p.cta,
       popular: true,
       accent: true,
       comingSoon: false,
-      href: "/checkout?plan=dual",
+      href: "/checkout?plan=bot",
     },
     {
       key: "indicator",
@@ -100,7 +87,7 @@ export default function Pricing() {
         </motion.div>
 
         {/* Cards */}
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan, i) => (
             <motion.div
               key={plan.name}
@@ -130,14 +117,6 @@ export default function Pricing() {
               </div>
 
               <div className="mt-3">
-                {plan.originalPrice && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm text-[var(--color-text-muted)] line-through">{plan.originalPrice}</span>
-                    <span className="rounded-full bg-[var(--color-gold)]/20 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-gold)]">
-                      {plan.discount}
-                    </span>
-                  </div>
-                )}
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-bold">{plan.price}</span>
                   <span className="text-sm text-[var(--color-text-muted)]">

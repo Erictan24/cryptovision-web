@@ -8,6 +8,7 @@ import Stats from "@/components/Stats";
 import Pricing from "@/components/Pricing";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
+import ChatWidget from "@/components/ChatWidget";
 
 export default function Home() {
   return (
@@ -22,6 +23,7 @@ export default function Home() {
         <FAQ />
       </main>
       <Footer />
+      <ChatWidget />
     </>
   );
 }

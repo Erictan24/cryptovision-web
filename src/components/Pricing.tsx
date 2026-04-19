@@ -113,7 +113,8 @@ export default function Pricing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
-              className={`card-glow relative rounded-2xl border p-5 ${
+              whileHover={{ scale: 1.03 }}
+              className={`card-glow shine-hover relative rounded-2xl border p-5 ${
                 plan.accent
                   ? "border-[var(--color-accent)] bg-[var(--color-bg-card)] glow-border"
                   : "border-[var(--color-border)] bg-[var(--color-bg-card)]"
@@ -159,7 +160,7 @@ export default function Pricing() {
                 href={plan.href}
                 className={`mt-4 block w-full rounded-xl py-2 text-center text-sm font-semibold transition ${
                   plan.accent
-                    ? "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-light)] glow-blue"
+                    ? "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-light)] btn-pulse"
                     : "border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent-light)]"
                 }`}
               >

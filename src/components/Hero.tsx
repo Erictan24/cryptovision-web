@@ -78,7 +78,7 @@ export default function Hero() {
           {stats.map((s) => (
             <div
               key={s.label}
-              className="flex flex-col items-center gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4 text-center"
+              className="card-glow flex flex-col items-center gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4 text-center cursor-default"
             >
               <s.icon
                 size={20}

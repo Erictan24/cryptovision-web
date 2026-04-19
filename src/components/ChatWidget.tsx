@@ -5,19 +5,78 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 
-const AUTO_REPLIES: Record<string, { id: string; en: string }> = {
-  harga: { id: "Kami punya paket mulai dari FREE. Cek halaman pricing untuk detail lengkap!", en: "We have plans starting from FREE. Check our pricing page for details!" },
-  price: { id: "Kami punya paket mulai dari FREE. Cek halaman pricing untuk detail lengkap!", en: "We have plans starting from FREE. Check our pricing page for details!" },
-  bayar: { id: "Kami terima BCA, Dana, GoPay, dan USDT (BEP20). Pilih metode saat checkout.", en: "We accept BCA, Dana, GoPay, and USDT (BEP20). Choose at checkout." },
-  pay: { id: "Kami terima BCA, Dana, GoPay, dan USDT (BEP20). Pilih metode saat checkout.", en: "We accept BCA, Dana, GoPay, and USDT (BEP20). Choose at checkout." },
-  aman: { id: "Bot hanya pakai API key untuk trading. Bot TIDAK bisa withdraw dana kamu. Dana tetap di exchange kamu.", en: "The bot only uses API keys for trading. It CANNOT withdraw your funds. Your money stays in your exchange." },
-  safe: { id: "Bot hanya pakai API key untuk trading. Bot TIDAK bisa withdraw dana kamu. Dana tetap di exchange kamu.", en: "The bot only uses API keys for trading. It CANNOT withdraw your funds. Your money stays in your exchange." },
-  modal: { id: "Minimal $50, rekomendasikan $100-$300 untuk hasil optimal. Risk per trade bisa diatur.", en: "Minimum $50, we recommend $100-$300 for optimal results. Risk per trade is adjustable." },
-  capital: { id: "Minimal $50, rekomendasikan $100-$300 untuk hasil optimal. Risk per trade bisa diatur.", en: "Minimum $50, we recommend $100-$300 for optimal results. Risk per trade is adjustable." },
-  exchange: { id: "Kami support Bitunix, MEXC, dan BingX untuk futures trading.", en: "We support Bitunix, MEXC, and BingX for futures trading." },
-  profit: { id: "Bot kami punya WR 73% (scalping + swing combined). Backtest menunjukkan profit konsisten.", en: "Our bot has 73% WR (scalping + swing combined). Backtests show consistent profits." },
-  winrate: { id: "Bot kami punya WR 73% (scalping + swing combined). Backtest menunjukkan profit konsisten.", en: "Our bot has 73% WR (scalping + swing combined). Backtests show consistent profits." },
-};
+// Smart reply categories — multiple keywords per topic
+const REPLY_RULES: Array<{ keywords: string[]; id: string; en: string }> = [
+  // Pricing
+  { keywords: ["harga", "price", "biaya", "cost", "berapa", "how much", "tarif", "paket", "plan"],
+    id: "Kami punya 4 paket:\n• FREE — signal delay, 5 coin\n• 1 Bulan — Rp 449k ($35)\n• 3 Bulan — Rp 999k ($79), hemat 26%\n• 1 Tahun — Rp 2.999k ($239), hemat 44%\n• Lifetime — Rp 4.999k ($399)\n\nCek detail di halaman Harga!",
+    en: "We have 4 plans:\n• FREE — delayed signals, 5 coins\n• 1 Month — $35\n• 3 Months — $79 (save 26%)\n• 1 Year — $239 (save 44%)\n• Lifetime — $399\n\nCheck the Pricing page for details!" },
+  // Payment
+  { keywords: ["bayar", "pay", "payment", "transfer", "bca", "dana", "gopay", "usdt", "pembayaran"],
+    id: "Metode pembayaran yang tersedia:\n• BCA Transfer\n• Dana\n• GoPay\n• USDT (BEP20)\n\nPilih saat checkout, transfer manual lalu konfirmasi via Telegram.",
+    en: "Available payment methods:\n• BCA Transfer\n• Dana\n• GoPay\n• USDT (BEP20)\n\nChoose at checkout, transfer manually then confirm via Telegram." },
+  // Safety
+  { keywords: ["aman", "safe", "security", "keamanan", "hack", "scam", "tipu", "trust", "percaya", "withdraw"],
+    id: "Keamanan dana kamu adalah prioritas kami:\n• Bot hanya pakai API key untuk trading\n• Bot TIDAK BISA withdraw/transfer dana\n• Dana tetap 100% di exchange kamu\n• API key hanya izin trading, bukan withdraw\n• Kamu bisa cabut akses kapan saja",
+    en: "Your fund safety is our priority:\n• Bot only uses API keys for trading\n• Bot CANNOT withdraw/transfer funds\n• Funds stay 100% in your exchange\n• API keys are trade-only, no withdraw\n• You can revoke access anytime" },
+  // Capital
+  { keywords: ["modal", "capital", "minimum", "mulai", "start", "uang", "money", "invest", "deposit"],
+    id: "Modal minimum:\n• Mulai dari $50 sudah bisa\n• Rekomendasi: $100-$300 untuk hasil optimal\n• Risk per trade bisa diatur (0.5-5% modal)\n• Default: $1 per trade (sangat konservatif)\n\nSemakin besar modal, semakin besar potensi profit.",
+    en: "Minimum capital:\n• Start from $50\n• Recommended: $100-$300 for optimal results\n• Risk per trade adjustable (0.5-5%)\n• Default: $1 per trade (very conservative)\n\nBigger capital = bigger profit potential." },
+  // Exchange
+  { keywords: ["exchange", "bitunix", "mexc", "bingx", "binance", "bybit"],
+    id: "Exchange yang didukung:\n• Bitunix (utama)\n• MEXC\n• BingX\n\nBot trading di Futures market. Kamu perlu buat akun di salah satu exchange dan generate API key.",
+    en: "Supported exchanges:\n• Bitunix (primary)\n• MEXC\n• BingX\n\nBot trades on Futures market. You need an account on one of these exchanges and generate an API key." },
+  // Win rate / Performance
+  { keywords: ["profit", "winrate", "win rate", "wr", "untung", "hasil", "performance", "return", "roi"],
+    id: "Performance bot kami (backtest 90 hari, 100 coin):\n• Scalping Bot: WR 69%, +$17/bulan\n• Swing Bot: WR 77%, +$31/bulan\n• Combined: WR 73%, +$48/bulan\n\nSemua di risk $1 per trade. Profit scale linear dengan risk.",
+    en: "Our bot performance (90-day backtest, 100 coins):\n• Scalping Bot: 69% WR, +$17/mo\n• Swing Bot: 77% WR, +$31/mo\n• Combined: 73% WR, +$48/mo\n\nAll at $1 risk per trade. Profit scales linearly with risk." },
+  // How it works
+  { keywords: ["cara", "how", "gimana", "bagaimana", "kerja", "work", "pakai", "use", "setup", "mulai"],
+    id: "Cara kerja CryptoVision:\n1. Daftar & pilih paket\n2. Connect exchange via API key\n3. Bot otomatis analisa market 24/7\n4. Bot entry saat ada peluang\n5. Trailing stop otomatis lock profit\n\nKamu tinggal duduk santai!",
+    en: "How CryptoVision works:\n1. Sign up & choose a plan\n2. Connect exchange via API key\n3. Bot analyzes market 24/7 automatically\n4. Bot enters when opportunity arises\n5. Auto trailing stop locks profit\n\nJust sit back and relax!" },
+  // Scalping vs Swing
+  { keywords: ["scalping", "scalp", "swing", "beda", "difference", "timeframe", "strategi", "strategy"],
+    id: "Perbedaan Scalping vs Swing:\n\n• Scalping: timeframe 15m, profit kecil tapi sering, ~2 trade/hari\n• Swing: timeframe 1H+4H, profit besar per trade, ~1.7 trade/hari\n\nDengan paket kami kamu dapat DUA-DUANYA, jadi peluang lebih banyak!",
+    en: "Scalping vs Swing difference:\n\n• Scalping: 15m timeframe, small frequent profits, ~2 trades/day\n• Swing: 1H+4H timeframe, bigger profits per trade, ~1.7 trades/day\n\nWith our plan you get BOTH, so more opportunities!" },
+  // Risk
+  { keywords: ["risiko", "risk", "rugi", "loss", "bahaya", "danger", "sl", "stop loss"],
+    id: "Manajemen risiko kami:\n• Risk per trade bisa diatur ($1-$50)\n• Stop Loss otomatis di setiap trade\n• Trailing stop lock profit bertahap\n• Max 5 posisi bersamaan\n• Daily loss limit untuk proteksi\n• Circuit breaker: stop setelah 2 SL beruntun",
+    en: "Our risk management:\n• Risk per trade adjustable ($1-$50)\n• Automatic Stop Loss on every trade\n• Trailing stop locks profit gradually\n• Max 5 simultaneous positions\n• Daily loss limit for protection\n• Circuit breaker: stops after 2 consecutive SL" },
+  // Refund
+  { keywords: ["refund", "batal", "cancel", "kembalikan", "return", "garansi", "guarantee"],
+    id: "Kebijakan kami:\n• Tidak ada refund setelah subscription aktif\n• Kamu bisa cancel kapan saja (tidak auto-renew)\n• Paket Free tersedia untuk coba dulu\n• Kami rekomendasikan coba Free dulu sebelum upgrade",
+    en: "Our policy:\n• No refund after subscription is active\n• You can cancel anytime (no auto-renew)\n• Free plan available to try first\n• We recommend trying Free before upgrading" },
+  // Login
+  { keywords: ["login", "masuk", "daftar", "register", "sign up", "akun", "account"],
+    id: "Cara login/daftar:\n1. Klik 'Masuk' di navbar\n2. Klik 'Login via Telegram'\n3. Buka Telegram, bot kirim link login\n4. Klik link → otomatis masuk dashboard\n\nTidak perlu password! Login aman via Telegram.",
+    en: "How to login/register:\n1. Click 'Login' in navbar\n2. Click 'Login via Telegram'\n3. Open Telegram, bot sends login link\n4. Click link → auto login to dashboard\n\nNo password needed! Secure login via Telegram." },
+  // Contact
+  { keywords: ["kontak", "contact", "hubungi", "admin", "cs", "customer", "support", "bantuan", "help"],
+    id: "Hubungi kami:\n• Telegram: @CryptoVisionID\n• Instagram: @cryptovisionid\n• TikTok: @cryptovisionid\n\nAtau klik 'Chat Admin Langsung' di bawah untuk bicara dengan tim kami!",
+    en: "Contact us:\n• Telegram: @CryptoVisionID\n• Instagram: @cryptovisionid\n• TikTok: @cryptovisionid\n\nOr click 'Chat Live Admin' below to talk to our team!" },
+  // Greeting
+  { keywords: ["halo", "hello", "hi", "hey", "hai", "p", "selamat"],
+    id: "Halo! Selamat datang di CryptoVision. Ada yang bisa saya bantu? Tanya apa saja tentang bot trading kami!",
+    en: "Hello! Welcome to CryptoVision. How can I help you? Ask anything about our trading bot!" },
+  // Thanks
+  { keywords: ["terima kasih", "thanks", "thank", "makasih", "thx"],
+    id: "Sama-sama! Kalau ada pertanyaan lain, jangan sungkan tanya ya. Atau langsung chat admin di Telegram!",
+    en: "You're welcome! If you have more questions, feel free to ask. Or chat admin directly on Telegram!" },
+];
+
+function findReply(input: string, locale: string): string {
+  const lower = input.toLowerCase();
+  for (const rule of REPLY_RULES) {
+    if (rule.keywords.some(k => lower.includes(k))) {
+      return locale === "id" ? rule.id : rule.en;
+    }
+  }
+  // Default fallback
+  return locale === "id"
+    ? "Maaf, saya belum bisa menjawab pertanyaan itu. Coba tanyakan tentang:\n• Harga & paket\n• Cara kerja bot\n• Keamanan dana\n• Modal minimum\n• Exchange yang didukung\n\nAtau klik 'Chat Admin Langsung' untuk bicara dengan tim kami!"
+    : "Sorry, I can't answer that yet. Try asking about:\n• Pricing & plans\n• How the bot works\n• Fund safety\n• Minimum capital\n• Supported exchanges\n\nOr click 'Chat Live Admin' to talk to our team!";
+}
 
 type Message = { text: string; from: "user" | "bot"; time: string };
 
@@ -41,18 +100,8 @@ export default function ChatWidget() {
     const userMsg: Message = { text: input, from: "user", time: now };
     setMessages((m) => [...m, userMsg]);
 
-    // Auto reply
-    const lower = input.toLowerCase();
-    let reply = locale === "id"
-      ? "Terima kasih! Untuk pertanyaan lebih lanjut, hubungi admin di Telegram."
-      : "Thanks! For further questions, contact admin on Telegram.";
-
-    for (const [key, val] of Object.entries(AUTO_REPLIES)) {
-      if (lower.includes(key)) {
-        reply = locale === "id" ? val.id : val.en;
-        break;
-      }
-    }
+    // Smart reply
+    const reply = findReply(input, locale);
 
     setTimeout(() => {
       setMessages((m) => [

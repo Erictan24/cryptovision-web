@@ -63,7 +63,7 @@ export default function NewsSection() {
   }, []);
 
   return (
-    <section className="mt-8">
+    <section>
       <div className="mb-4 flex items-center gap-2">
         <Newspaper size={18} className="text-[var(--color-accent)]" />
         <h2 className="text-lg font-bold">

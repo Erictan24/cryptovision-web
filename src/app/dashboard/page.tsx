@@ -60,8 +60,8 @@ export default function DashboardOverviewPage() {
       title: locale === "id" ? "Exchange" : "Exchange",
       value: locale === "id" ? "Belum Terhubung" : "Not Connected",
       desc: locale === "id" ? "Hubungkan Bitunix, MEXC, atau BingX" : "Connect Bitunix, MEXC, or BingX",
-      action: locale === "id" ? "Hubungkan" : "Connect",
-      href: "#",
+      action: locale === "id" ? "Segera hadir" : "Coming soon",
+      href: null,
       color: "text-[var(--color-text-muted)]",
     },
   ];
@@ -96,13 +96,19 @@ export default function DashboardOverviewPage() {
               </div>
             </div>
             <p className="mt-3 text-xs text-[var(--color-text-muted)]">{c.desc}</p>
-            <a
-              href={c.href}
-              className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-[var(--color-accent)] transition hover:text-[var(--color-accent-light)]"
-            >
-              {c.action}
-              <ChevronRight size={12} />
-            </a>
+            {c.href ? (
+              <a
+                href={c.href}
+                className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-[var(--color-accent)] transition hover:text-[var(--color-accent-light)]"
+              >
+                {c.action}
+                <ChevronRight size={12} />
+              </a>
+            ) : (
+              <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-[var(--color-text-muted)]">
+                {c.action}
+              </span>
+            )}
           </div>
         ))}
       </div>

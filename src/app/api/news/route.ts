@@ -16,24 +16,83 @@ type NewsEvent = RawEvent & {
   minutesUntil: number;
 };
 
-const CRITICAL_KEYWORDS = [
-  "FOMC", "Federal Funds", "Fed Rate", "Interest Rate",
-  "CPI", "Consumer Price", "Inflation",
-  "NFP", "Non-Farm", "Nonfarm", "Employment",
-  "GDP", "Gross Domestic",
-  "PPI", "Producer Price",
+// Crypto-specific — always include regardless of country/impact.
+// Use word boundary match (SEC substring collides with "Sector" etc.)
+const CRYPTO_KEYWORDS = ["SEC", "Bitcoin ETF", "Crypto", "Stablecoin", "CBDC"];
+
+// US macro yang historically gerakkan crypto (include Medium impact ones too).
+const US_MARKET_MOVERS = [
+  "FOMC", "Federal Funds", "Fed Rate", "Fed Funds", "Interest Rate",
+  "CPI", "Consumer Price",
   "PCE", "Personal Consumption",
+  "PPI", "Producer Price",
+  "NFP", "Non-Farm", "Nonfarm",
   "JOLTS", "Job Opening",
+  "Unemployment",
+  "GDP", "Gross Domestic",
   "Retail Sales",
-  "Powell", "Fed Chair", "Fed Speech",
-  "Treasury", "Debt",
-  "Bitcoin ETF", "Crypto", "SEC",
+  "ISM", "PMI",
+  "Consumer Sentiment", "UoM", "Michigan",
+  "Consumer Confidence",
+  "Durable Goods",
+  "Powell", "Fed Chair",
+  "Employment Cost", "Employment Change",
+];
+
+// Central bank rate decisions dari mata uang mayor (pengaruh DXY → crypto).
+const MAJOR_RATE_DECISION = [
+  "ECB Rate", "Main Refinancing", "Deposit Facility",
+  "Official Bank Rate", "BOE Rate", "Bank Rate",
+  "BOJ Policy Rate", "Monetary Policy Statement",
+  "BOC Rate", "Overnight Rate",
+  "RBA Cash Rate", "Cash Rate",
 ];
 
 const FF_URLS = [
   "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
   "https://nfs.faireconomy.media/ff_calendar_nextweek.json",
 ];
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Match dengan word boundary — hindari false positive seperti "SEC" = "sector".
+function matchesWordBoundary(title: string, keywords: string[]): boolean {
+  for (const kw of keywords) {
+    const re = new RegExp(`\\b${escapeRegex(kw)}\\b`, "i");
+    if (re.test(title)) return true;
+  }
+  return false;
+}
+
+function isRelevantForCrypto(e: RawEvent): boolean {
+  // 1. Crypto-specific keyword → always include
+  if (matchesWordBoundary(e.title, CRYPTO_KEYWORDS)) return true;
+
+  // 2. USD High impact → always include
+  if (e.country === "USD" && e.impact === "High") return true;
+
+  // 3. USD Medium impact + matches known US market-mover
+  if (
+    e.country === "USD" &&
+    e.impact === "Medium" &&
+    matchesWordBoundary(e.title, US_MARKET_MOVERS)
+  ) {
+    return true;
+  }
+
+  // 4. Major non-USD central bank rate decision (High only)
+  if (
+    e.impact === "High" &&
+    ["EUR", "GBP", "JPY", "CAD", "AUD"].includes(e.country) &&
+    matchesWordBoundary(e.title, MAJOR_RATE_DECISION)
+  ) {
+    return true;
+  }
+
+  return false;
+}
 
 async function fetchCalendar(): Promise<RawEvent[]> {
   const all: RawEvent[] = [];
@@ -69,17 +128,7 @@ export async function GET() {
     // Skip past events (older than 1h ago)
     if (ts < now - 60 * 60 * 1000) continue;
 
-    // Only High + Medium (skip Low noise)
-    if (e.impact !== "High" && e.impact !== "Medium") continue;
-
-    const isCritical = CRITICAL_KEYWORDS.some((kw) =>
-      e.title.toLowerCase().includes(kw.toLowerCase()),
-    );
-
-    // For Medium impact, only keep if USD/EUR or matches critical keyword
-    if (e.impact === "Medium" && !isCritical && e.country !== "USD" && e.country !== "EUR") {
-      continue;
-    }
+    if (!isRelevantForCrypto(e)) continue;
 
     const key = `${e.date}|${e.title}|${e.country}`;
     if (seen.has(key)) continue;
@@ -87,7 +136,7 @@ export async function GET() {
 
     events.push({
       ...e,
-      isCritical,
+      isCritical: matchesWordBoundary(e.title, CRYPTO_KEYWORDS),
       minutesUntil: Math.round((ts - now) / 60000),
     });
   }
@@ -95,7 +144,7 @@ export async function GET() {
   events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return NextResponse.json({
-    events: events.slice(0, 20),
+    events: events.slice(0, 12),
     updatedAt: new Date().toISOString(),
   });
 }

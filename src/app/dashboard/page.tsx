@@ -11,6 +11,7 @@ import {
   User,
   ChevronRight,
 } from "lucide-react";
+import NewsSection from "@/components/NewsSection";
 
 type Sub = { plan: string; planName?: string; plan_name?: string; status: string } | null;
 
@@ -216,6 +217,8 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        <NewsSection />
       </main>
     </div>
   );

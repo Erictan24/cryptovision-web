@@ -121,6 +121,7 @@ async function fetchCalendar(): Promise<RawEvent[]> {
 export async function GET() {
   const raw = await fetchCalendar();
   const now = Date.now();
+  const oneWeekAhead = now + 7 * 24 * 60 * 60 * 1000;
 
   const seen = new Set<string>();
   const events: NewsEvent[] = [];
@@ -130,8 +131,10 @@ export async function GET() {
     const ts = new Date(e.date).getTime();
     if (Number.isNaN(ts)) continue;
 
-    // Skip past events (older than 1h ago)
-    if (ts < now - 60 * 60 * 1000) continue;
+    // Window: dari sekarang sampai 7 hari ke depan
+    // Past events otomatis hilang, future event > 7 hari di-skip
+    if (ts < now) continue;
+    if (ts > oneWeekAhead) continue;
 
     if (!isRelevantForCrypto(e)) continue;
 
@@ -149,7 +152,7 @@ export async function GET() {
   events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return NextResponse.json({
-    events: events.slice(0, 12),
+    events,  // tampilkan semua dalam window 7 hari
     updatedAt: new Date().toISOString(),
   });
 }

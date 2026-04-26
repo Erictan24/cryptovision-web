@@ -21,11 +21,6 @@ const COUNTRY_FLAG: Record<string, string> = {
 };
 
 function formatCountdown(mins: number, locale: "id" | "en"): string {
-  if (mins < 0) {
-    const past = Math.abs(mins);
-    if (past < 60) return locale === "id" ? `${past}m lalu` : `${past}m ago`;
-    return locale === "id" ? "Baru lewat" : "Just passed";
-  }
   if (mins < 60) return locale === "id" ? `${mins}m lagi` : `in ${mins}m`;
   const hours = Math.floor(mins / 60);
   const rem = mins % 60;
@@ -68,7 +63,7 @@ export default function NewsSection() {
       <div className="mb-4 flex items-center gap-2">
         <Newspaper size={18} className="text-[var(--color-accent)]" />
         <h2 className="text-lg font-bold">
-          {locale === "id" ? "Berita Ekonomi" : "Economic News"}
+          {locale === "id" ? "Berita Ekonomi — 7 Hari Ke Depan" : "Economic News — Next 7 Days"}
         </h2>
         <span className="text-xs text-[var(--color-text-muted)]">
           {locale === "id"

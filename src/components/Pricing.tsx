@@ -105,7 +105,7 @@ export default function Pricing() {
         </motion.div>
 
         {/* Cards */}
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-16 grid items-stretch gap-5 pt-4 sm:grid-cols-2 lg:grid-cols-5">
           {plans.map((plan, i) => (
             <motion.div
               key={plan.key}
@@ -113,41 +113,45 @@ export default function Pricing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
-              whileHover={{ scale: 1.03 }}
-              className={`card-glow shine-hover relative rounded-2xl border p-5 ${
+              whileHover={{ y: -4 }}
+              className={`card-glow shine-hover relative flex h-full flex-col rounded-2xl border p-5 transition-shadow ${
                 plan.accent
-                  ? "border-[var(--color-accent)] bg-[var(--color-bg-card)] glow-border"
-                  : "border-[var(--color-border)] bg-[var(--color-bg-card)]"
+                  ? "border-[var(--color-accent)] bg-[var(--color-bg-card)] glow-border shadow-lg shadow-[var(--color-accent)]/20 lg:scale-[1.04]"
+                  : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-accent)]/50"
               }`}
             >
               {plan.badge && (
-                <span className={`absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full px-3 py-0.5 text-xs font-semibold ${
+                <span className={`absolute -top-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold shadow-md ${
                   plan.badge === p.best_value
                     ? "bg-[var(--color-gold)] text-black"
                     : "bg-[var(--color-accent)] text-white"
                 }`}>
-                  {plan.badge === p.best_value ? <Crown size={10} /> : <Star size={10} fill="white" />}
+                  {plan.badge === p.best_value ? <Crown size={11} /> : <Star size={11} fill="white" />}
                   {plan.badge}
                 </span>
               )}
 
               <h3 className="text-base font-semibold">{plan.name}</h3>
 
-              {/* Save badge */}
-              {plan.save && (
-                <span className="mt-1 inline-block rounded-full bg-[var(--color-success)]/20 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-success)]">
-                  {p.save} {plan.save}
-                </span>
-              )}
-
-              <div className="mt-2">
-                <span className="text-2xl font-bold">{plan.price}</span>
-                {plan.subtitle && (
-                  <span className="ml-1 text-xs text-[var(--color-text-muted)]">{plan.subtitle}</span>
+              {/* Save badge — reserve space so all prices align */}
+              <div className="mt-1 h-5">
+                {plan.save && (
+                  <span className="inline-flex items-center rounded-full bg-[var(--color-success)]/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-success)]">
+                    {p.save} {plan.save}
+                  </span>
                 )}
               </div>
 
-              <ul className="mt-4 space-y-2">
+              <div className="mt-2 flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-2xl font-bold leading-tight">{plan.price}</span>
+                {plan.subtitle && (
+                  <span className="text-xs text-[var(--color-text-muted)]">{plan.subtitle}</span>
+                )}
+              </div>
+
+              <div className="my-4 h-px bg-[var(--color-border)]/60" />
+
+              <ul className="flex-1 space-y-2">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-xs text-[var(--color-text-secondary)]">
                     <Check size={12} className="mt-0.5 shrink-0 text-[var(--color-success)]" />
@@ -158,7 +162,7 @@ export default function Pricing() {
 
               <a
                 href={plan.href}
-                className={`mt-4 block w-full rounded-xl py-2 text-center text-sm font-semibold transition ${
+                className={`mt-6 block w-full rounded-xl py-2.5 text-center text-sm font-semibold transition ${
                   plan.accent
                     ? "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-light)] btn-pulse"
                     : "border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent-light)]"

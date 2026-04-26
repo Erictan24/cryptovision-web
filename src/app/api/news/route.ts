@@ -26,20 +26,24 @@ const CRYPTO_KEYWORDS = ["SEC", "Bitcoin ETF", "Crypto", "Stablecoin", "CBDC"];
 // US macro yang historically gerakkan crypto (include Medium impact ones too).
 const US_MARKET_MOVERS = [
   "FOMC", "Federal Funds", "Fed Rate", "Fed Funds", "Interest Rate",
-  "CPI", "Consumer Price",
-  "PCE", "Personal Consumption",
+  "Fed Press", "Press Conference", "Fed Chair", "Fed Statement",
+  "CPI", "Consumer Price", "Core CPI",
+  "PCE", "Personal Consumption", "Core PCE",
   "PPI", "Producer Price",
-  "NFP", "Non-Farm", "Nonfarm",
-  "JOLTS", "Job Opening",
-  "Unemployment",
+  "NFP", "Non-Farm", "Nonfarm", "Payroll",
+  "JOLTS", "Job Opening", "Job Openings",
+  "Unemployment", "Initial Jobless", "Continuing Jobless",
   "GDP", "Gross Domestic",
   "Retail Sales",
-  "ISM", "PMI",
+  "ISM", "PMI", "Manufacturing PMI", "Services PMI",
   "Consumer Sentiment", "UoM", "Michigan",
   "Consumer Confidence",
-  "Durable Goods",
-  "Powell", "Fed Chair",
+  "Durable Goods", "Factory Orders",
+  "Building Permits", "Housing Starts", "New Home Sales", "Existing Home Sales",
+  "Trade Balance",
+  "Powell",
   "Employment Cost", "Employment Change",
+  "ADP",
 ];
 
 // Central bank rate decisions dari mata uang mayor (pengaruh DXY → crypto).
@@ -76,10 +80,11 @@ function isRelevantForCrypto(e: RawEvent): boolean {
   // 2. USD High impact → always include
   if (e.country === "USD" && e.impact === "High") return true;
 
-  // 3. USD Medium impact + matches known US market-mover
+  // 3. USD Medium/Low impact + matches known US market-mover
+  // Diperluas dari Medium-only ke include Low juga, agar match TradingView calendar
   if (
     e.country === "USD" &&
-    e.impact === "Medium" &&
+    (e.impact === "Medium" || e.impact === "Low") &&
     matchesWordBoundary(e.title, US_MARKET_MOVERS)
   ) {
     return true;

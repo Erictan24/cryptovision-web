@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useLang } from "@/components/LanguageProvider";
+import MarketOverview from "@/components/MarketOverview";
 import { Bot, CreditCard, Link2, User, ChevronRight } from "lucide-react";
 
 type Sub = { plan: string; planName?: string; plan_name?: string; status: string } | null;
@@ -111,6 +112,10 @@ export default function DashboardOverviewPage() {
             )}
           </div>
         ))}
+      </div>
+
+      <div className="mt-8">
+        <MarketOverview />
       </div>
 
       <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">

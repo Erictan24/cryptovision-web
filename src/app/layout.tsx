@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { AuthProvider } from "@/components/AuthProvider";
+import ContactFloat from "@/components/ContactFloat";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,7 +25,10 @@ export default function RootLayout({
     <html lang="id" className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans">
         <LanguageProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {children}
+            <ContactFloat />
+          </AuthProvider>
         </LanguageProvider>
       </body>
     </html>

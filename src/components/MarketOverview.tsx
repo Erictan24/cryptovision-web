@@ -52,22 +52,43 @@ function fearGreedColor(v: number): string {
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
   if (!data || data.length < 2) return null;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
+  // Downsample untuk smoother — ambil tiap N point biar tidak terlalu padat
+  const step = Math.max(1, Math.floor(data.length / 30));
+  const sampled = data.filter((_, i) => i % step === 0);
+
+  const min = Math.min(...sampled);
+  const max = Math.max(...sampled);
   const range = max - min || 1;
-  const w = 80;
-  const h = 24;
-  const step = w / (data.length - 1);
-  const path = data
-    .map((v, i) => {
-      const x = i * step;
-      const y = h - ((v - min) / range) * h;
-      return `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(" ");
+  const w = 110;
+  const h = 32;
+  const dx = w / (sampled.length - 1);
+
+  const points = sampled.map((v, i) => ({
+    x: i * dx,
+    y: h - ((v - min) / range) * h * 0.85 - 2,
+  }));
+
+  // Smooth path pakai cubic bezier
+  let linePath = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const cur = points[i];
+    const cpx = (prev.x + cur.x) / 2;
+    linePath += ` Q ${cpx.toFixed(2)} ${prev.y.toFixed(2)} ${cur.x.toFixed(2)} ${cur.y.toFixed(2)}`;
+  }
+  const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(2)} ${h} L 0 ${h} Z`;
+
+  const gradId = `sparkgrad-${color.replace("#", "")}`;
   return (
-    <svg width={w} height={h} className="opacity-80">
-      <path d={path} fill="none" stroke={color} strokeWidth="1.5" />
+    <svg width={w} height={h}>
+      <defs>
+        <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.4" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gradId})`} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

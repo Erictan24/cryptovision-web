@@ -244,9 +244,89 @@ export async function getPositionsDb() {
   return await sql`SELECT * FROM positions ORDER BY opened_at DESC`;
 }
 
-export async function getTradesDb(limit = 100) {
+export async function getTradesDb(limit = 100, hours?: number) {
   const sql = getDb();
+  if (hours && hours > 0) {
+    return await sql`
+      SELECT * FROM trades
+      WHERE closed_at >= NOW() - (${hours} || ' hours')::INTERVAL
+      ORDER BY closed_at DESC
+      LIMIT ${limit}
+    `;
+  }
   return await sql`SELECT * FROM trades ORDER BY closed_at DESC LIMIT ${limit}`;
+}
+
+/** Detailed stats breakdown — semua trade closed (all-time). */
+export async function getDetailedStatsDb() {
+  const sql = getDb();
+
+  // Total counts + outcome breakdown via pnl_r bucket
+  // TP2: pnl_r >= 1.5 (full target)
+  // TP1: 0.3 <= pnl_r < 1.5 (parsial take-profit + ran lebih)
+  // BEP: |pnl_r| < 0.1
+  // SL : pnl_r <= -0.5
+  const summary = await sql`
+    SELECT
+      COUNT(*)::int                                                            AS total,
+      SUM(CASE WHEN pnl_r >= 1.5                                  THEN 1 ELSE 0 END)::int AS tp2_count,
+      SUM(CASE WHEN pnl_r >= 0.3 AND pnl_r < 1.5                  THEN 1 ELSE 0 END)::int AS tp1_count,
+      SUM(CASE WHEN ABS(pnl_r) < 0.1                              THEN 1 ELSE 0 END)::int AS bep_count,
+      SUM(CASE WHEN pnl_r <= -0.5                                 THEN 1 ELSE 0 END)::int AS sl_count,
+      SUM(CASE WHEN pnl_usd > 0                                   THEN 1 ELSE 0 END)::int AS wins,
+      SUM(CASE WHEN pnl_usd < 0                                   THEN 1 ELSE 0 END)::int AS losses,
+      AVG(pnl_r)::float                                                          AS avg_r,
+      SUM(pnl_usd)::float                                                        AS net_pnl_usd,
+      AVG(pnl_usd)::float                                                        AS avg_pnl_usd,
+      MAX(pnl_r)::float                                                          AS best_r,
+      MIN(pnl_r)::float                                                          AS worst_r
+    FROM trades
+  `;
+
+  // Breakdown by strategy
+  const byStrategy = await sql`
+    SELECT
+      strategy,
+      COUNT(*)::int                                          AS total,
+      SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END)::int      AS wins,
+      AVG(pnl_r)::float                                      AS avg_r,
+      SUM(pnl_usd)::float                                    AS net_pnl_usd
+    FROM trades
+    GROUP BY strategy
+    ORDER BY total DESC
+  `;
+
+  // Breakdown by quality
+  const byQuality = await sql`
+    SELECT
+      COALESCE(quality, 'UNKNOWN') AS quality,
+      COUNT(*)::int                                          AS total,
+      SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END)::int      AS wins,
+      AVG(pnl_r)::float                                      AS avg_r,
+      SUM(pnl_usd)::float                                    AS net_pnl_usd
+    FROM trades
+    GROUP BY quality
+    ORDER BY total DESC
+  `;
+
+  // Breakdown by direction
+  const byDirection = await sql`
+    SELECT
+      direction,
+      COUNT(*)::int                                          AS total,
+      SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END)::int      AS wins,
+      AVG(pnl_r)::float                                      AS avg_r,
+      SUM(pnl_usd)::float                                    AS net_pnl_usd
+    FROM trades
+    GROUP BY direction
+  `;
+
+  return {
+    summary: summary[0],
+    by_strategy: byStrategy,
+    by_quality: byQuality,
+    by_direction: byDirection,
+  };
 }
 
 export async function getPerformanceStatsDb() {

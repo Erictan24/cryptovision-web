@@ -4,11 +4,13 @@ import { pushTradeDb, getTradesDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-/** GET — list trades closed */
+/** GET — list trades closed. Param ?hours= untuk filter window. */
 export async function GET(req: NextRequest) {
   const limit = parseInt(req.nextUrl.searchParams.get("limit") || "100");
+  const hoursParam = req.nextUrl.searchParams.get("hours");
+  const hours = hoursParam ? parseInt(hoursParam) : undefined;
   try {
-    const rows = await getTradesDb(limit);
+    const rows = await getTradesDb(limit, hours);
     return NextResponse.json({ ok: true, trades: rows });
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });

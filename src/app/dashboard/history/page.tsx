@@ -35,7 +35,7 @@ export default function HistoryPage() {
   const [trades, setTrades] = useState<Trade[] | null>(null);
 
   useEffect(() => {
-    fetch(`/api/trades?limit=100&t=${Date.now()}`, { cache: "no-store" })
+    fetch(`/api/trades?limit=200&hours=24&t=${Date.now()}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setTrades(d.trades || []))
       .catch(() => setTrades([]));
@@ -57,7 +57,9 @@ export default function HistoryPage() {
           {locale === "id" ? "Riwayat Trade" : "Trade History"}
         </h1>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          {locale === "id" ? "100 trade terakhir + statistik" : "Last 100 trades + statistics"}
+          {locale === "id"
+            ? "Trade selesai dalam 24 jam terakhir — buka Statistik untuk semua data"
+            : "Closed trades in last 24h — open Statistics for all-time data"}
         </p>
       </div>
 

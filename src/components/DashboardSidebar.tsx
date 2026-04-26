@@ -8,6 +8,7 @@ import {
   Activity,
   Briefcase,
   History,
+  BarChart3,
 } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 
@@ -24,6 +25,7 @@ const NAV: NavItem[] = [
   { href: "/dashboard/signals", icon: Activity, labelId: "Signal", labelEn: "Signals" },
   { href: "/dashboard/positions", icon: Briefcase, labelId: "Posisi", labelEn: "Positions" },
   { href: "/dashboard/history", icon: History, labelId: "Riwayat", labelEn: "History" },
+  { href: "/dashboard/statistics", icon: BarChart3, labelId: "Statistik", labelEn: "Statistics" },
 ];
 
 export default function DashboardSidebar() {

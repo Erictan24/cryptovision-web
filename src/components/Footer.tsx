@@ -98,13 +98,13 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#" className="transition hover:text-[var(--color-accent-light)]">
+                <a href="/disclaimer" className="transition hover:text-[var(--color-accent-light)]">
                   {t.footer.terms}
                 </a>
               </li>
               <li>
-                <a href="#" className="transition hover:text-[var(--color-accent-light)]">
-                  {t.footer.privacy}
+                <a href="/disclaimer" className="transition hover:text-[var(--color-accent-light)]">
+                  Risk Disclaimer
                 </a>
               </li>
             </ul>

@@ -47,6 +47,128 @@ export async function initDb() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `;
+
+  // Signal yang di-generate bot — semua user lihat ini di Signals page
+  await sql`
+    CREATE TABLE IF NOT EXISTS signals (
+      id BIGSERIAL PRIMARY KEY,
+      symbol TEXT NOT NULL,
+      direction TEXT NOT NULL,
+      strategy TEXT DEFAULT 'swing',
+      quality TEXT,
+      score INTEGER,
+      entry NUMERIC,
+      sl NUMERIC,
+      tp1 NUMERIC,
+      tp2 NUMERIC,
+      rr NUMERIC,
+      reasons JSONB,
+      executed BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_signals_created ON signals(created_at DESC)`;
+
+  // Trade yang sudah selesai — Win/Loss/BEP
+  await sql`
+    CREATE TABLE IF NOT EXISTS trades (
+      id BIGSERIAL PRIMARY KEY,
+      symbol TEXT NOT NULL,
+      direction TEXT NOT NULL,
+      strategy TEXT DEFAULT 'swing',
+      quality TEXT,
+      entry NUMERIC,
+      exit_price NUMERIC,
+      sl NUMERIC,
+      tp1 NUMERIC,
+      tp2 NUMERIC,
+      pnl_usd NUMERIC,
+      pnl_r NUMERIC,
+      outcome TEXT,
+      bep_done BOOLEAN DEFAULT false,
+      opened_at TIMESTAMP,
+      closed_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_trades_closed ON trades(closed_at DESC)`;
+
+  // Referral tracking
+  await sql`
+    CREATE TABLE IF NOT EXISTS referrals (
+      id BIGSERIAL PRIMARY KEY,
+      referrer_id BIGINT NOT NULL,
+      referred_id BIGINT NOT NULL UNIQUE,
+      plan_purchased TEXT,
+      commission_pct INTEGER DEFAULT 10,
+      commission_paid BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+}
+
+// ─── SIGNALS / TRADES / STATS ────────────────────────────────
+
+export async function pushSignalDb(s: {
+  symbol: string; direction: string; strategy?: string; quality?: string;
+  score?: number; entry?: number; sl?: number; tp1?: number; tp2?: number;
+  rr?: number; reasons?: string[]; executed?: boolean;
+}) {
+  const sql = getDb();
+  await sql`
+    INSERT INTO signals (symbol, direction, strategy, quality, score, entry, sl, tp1, tp2, rr, reasons, executed)
+    VALUES (${s.symbol}, ${s.direction}, ${s.strategy || 'swing'}, ${s.quality || null},
+            ${s.score || null}, ${s.entry || null}, ${s.sl || null},
+            ${s.tp1 || null}, ${s.tp2 || null}, ${s.rr || null},
+            ${JSON.stringify(s.reasons || [])}, ${s.executed || false})
+  `;
+}
+
+export async function pushTradeDb(t: {
+  symbol: string; direction: string; strategy?: string; quality?: string;
+  entry?: number; exit_price?: number; sl?: number; tp1?: number; tp2?: number;
+  pnl_usd?: number; pnl_r?: number; outcome?: string; bep_done?: boolean;
+  opened_at?: string;
+}) {
+  const sql = getDb();
+  await sql`
+    INSERT INTO trades (symbol, direction, strategy, quality, entry, exit_price, sl, tp1, tp2,
+                       pnl_usd, pnl_r, outcome, bep_done, opened_at)
+    VALUES (${t.symbol}, ${t.direction}, ${t.strategy || 'swing'}, ${t.quality || null},
+            ${t.entry || null}, ${t.exit_price || null}, ${t.sl || null},
+            ${t.tp1 || null}, ${t.tp2 || null}, ${t.pnl_usd || null}, ${t.pnl_r || null},
+            ${t.outcome || null}, ${t.bep_done || false},
+            ${t.opened_at || null})
+  `;
+}
+
+export async function getSignalsDb(limit = 50) {
+  const sql = getDb();
+  return await sql`SELECT * FROM signals ORDER BY created_at DESC LIMIT ${limit}`;
+}
+
+export async function getTradesDb(limit = 100) {
+  const sql = getDb();
+  return await sql`SELECT * FROM trades ORDER BY closed_at DESC LIMIT ${limit}`;
+}
+
+export async function getPerformanceStatsDb() {
+  const sql = getDb();
+  const today = await sql`
+    SELECT COUNT(*) AS total, SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END) AS wins,
+           SUM(pnl_usd) AS net_pnl
+    FROM trades WHERE closed_at >= CURRENT_DATE
+  `;
+  const month = await sql`
+    SELECT COUNT(*) AS total, SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END) AS wins,
+           SUM(pnl_usd) AS net_pnl
+    FROM trades WHERE closed_at >= DATE_TRUNC('month', CURRENT_DATE)
+  `;
+  const all = await sql`
+    SELECT COUNT(*) AS total, SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END) AS wins,
+           SUM(pnl_usd) AS net_pnl
+    FROM trades
+  `;
+  return { today: today[0], month: month[0], all: all[0] };
 }
 
 /** Upsert user (create or update) */

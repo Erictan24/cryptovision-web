@@ -1,16 +1,51 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, TrendingUp, Target, Coins } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 
+type LiveStats = {
+  today: { total: string; wins: string; net_pnl: string };
+  month: { total: string; wins: string; net_pnl: string };
+  all: { total: string; wins: string; net_pnl: string };
+};
+
 export default function Hero() {
   const { t } = useLang();
+  const [live, setLive] = useState<LiveStats | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.json())
+      .then((d) => { if (d.ok) setLive(d.stats); })
+      .catch(() => {});
+  }, []);
+
+  // Live stats (kalau ada data) atau fallback ke target backtest
+  const monthTotal = live ? parseInt(live.month.total || "0") : 0;
+  const monthWins  = live ? parseInt(live.month.wins || "0") : 0;
+  const monthPnl   = live ? parseFloat(live.month.net_pnl || "0") : 0;
+  const wr = monthTotal > 0 ? (monthWins / monthTotal) * 100 : 0;
 
   const stats = [
-    { icon: Target, value: "65%+", label: t.hero.stat_wr },
-    { icon: TrendingUp, value: "+14.5R", label: t.hero.stat_profit },
-    { icon: Coins, value: "50+", label: t.hero.stat_coins },
+    {
+      icon: Target,
+      value: monthTotal > 0 ? `${wr.toFixed(0)}%` : "65%+",
+      label: live && monthTotal > 0
+        ? (t.hero.stat_wr + " (live bulan ini)")
+        : t.hero.stat_wr,
+    },
+    {
+      icon: TrendingUp,
+      value: monthTotal > 0 ? `${monthPnl >= 0 ? "+" : ""}$${monthPnl.toFixed(2)}` : "+14.5R",
+      label: live && monthTotal > 0 ? "PnL bulan ini (live)" : t.hero.stat_profit,
+    },
+    {
+      icon: Coins,
+      value: monthTotal > 0 ? `${monthTotal}` : "50+",
+      label: live && monthTotal > 0 ? "Trade bulan ini" : t.hero.stat_coins,
+    },
   ];
 
   return (

@@ -138,6 +138,117 @@ export default function NewsSection() {
         </span>
       </div>
 
+      {/* LEGEND — penjelasan UI elements */}
+      <div className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Info size={14} className="text-[var(--color-accent)]" />
+          <span className="text-xs font-bold text-[var(--color-text-secondary)]">
+            {locale === "id" ? "Cara Membaca Kalender" : "How to Read"}
+          </span>
+        </div>
+
+        <div className="grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
+          {/* Impact bars legend */}
+          <div>
+            <div className="mb-1.5 text-[10px] font-bold uppercase text-[var(--color-text-muted)]">
+              {locale === "id" ? "Tingkat Dampak" : "Impact Level"}
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <ImpactBars impact="High" />
+                <span className="text-[var(--color-danger)] font-semibold">High</span>
+                <span className="text-[var(--color-text-muted)]">
+                  {locale === "id" ? "— gerakkan market besar" : "— big market mover"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ImpactBars impact="Medium" />
+                <span className="text-[var(--color-warning,#f59e0b)] font-semibold">Medium</span>
+                <span className="text-[var(--color-text-muted)]">
+                  {locale === "id" ? "— pengaruh sedang" : "— moderate effect"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ImpactBars impact="Low" />
+                <span className="text-[var(--color-text-muted)] font-semibold">Low</span>
+                <span className="text-[var(--color-text-muted)]">
+                  {locale === "id" ? "— minor impact" : "— minor impact"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Bendera */}
+          <div>
+            <div className="mb-1.5 text-[10px] font-bold uppercase text-[var(--color-text-muted)]">
+              {locale === "id" ? "Bendera Negara" : "Country Flag"}
+            </div>
+            <div className="space-y-1 text-[var(--color-text-secondary)]">
+              <div>🇺🇸 <span className="text-[var(--color-text-muted)]">USD — paling pengaruh ke crypto</span></div>
+              <div>🇪🇺 🇬🇧 🇯🇵 <span className="text-[var(--color-text-muted)]">major rate decisions</span></div>
+              <div className="text-[10px] text-[var(--color-text-muted)]">
+                {locale === "id"
+                  ? "Hanya event high-impact USD + central bank lain ditampilkan"
+                  : "Only high-impact USD + major central banks shown"}
+              </div>
+            </div>
+          </div>
+
+          {/* Actual vs Forecast */}
+          <div>
+            <div className="mb-1.5 text-[10px] font-bold uppercase text-[var(--color-text-muted)]">
+              {locale === "id" ? "Angka Data" : "Data Numbers"}
+            </div>
+            <div className="space-y-1 text-[var(--color-text-secondary)]">
+              <div>
+                <span className="font-bold text-[var(--color-text-secondary)]">Actual</span>
+                <span className="text-[var(--color-text-muted)]"> — hasil aktual rilis</span>
+              </div>
+              <div>
+                <span className="font-bold text-[var(--color-text-secondary)]">Forecast</span>
+                <span className="text-[var(--color-text-muted)]"> — prediksi analis</span>
+              </div>
+              <div>
+                <span className="font-bold text-[var(--color-text-secondary)]">Prior</span>
+                <span className="text-[var(--color-text-muted)]"> — data periode sebelumnya</span>
+              </div>
+              <div className="text-[10px]">
+                <span className="text-[var(--color-success)]">Hijau</span>
+                <span className="text-[var(--color-text-muted)]"> = lebih tinggi dari forecast </span>
+                <span className="text-[var(--color-danger)]">Merah</span>
+                <span className="text-[var(--color-text-muted)]"> = lebih rendah</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Interaction */}
+          <div>
+            <div className="mb-1.5 text-[10px] font-bold uppercase text-[var(--color-text-muted)]">
+              {locale === "id" ? "Interaksi" : "Interaction"}
+            </div>
+            <div className="space-y-1 text-[var(--color-text-secondary)]">
+              <div className="flex items-center gap-1.5">
+                <ChevronDown size={12} className="text-[var(--color-accent)]" />
+                <span className="text-[var(--color-text-muted)]">
+                  {locale === "id" ? "Klik row → skenario bull/bear" : "Click row → bull/bear scenario"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <AlertTriangle size={11} className="text-[var(--color-accent)]" />
+                <span className="text-[var(--color-text-muted)]">
+                  {locale === "id" ? "Tag CRYPTO = pengaruh langsung" : "CRYPTO tag = direct impact"}
+                </span>
+              </div>
+              <div className="text-[10px] text-[var(--color-text-muted)]">
+                {locale === "id"
+                  ? "Event yang sudah lewat tampil pudar (12 jam grace)"
+                  : "Past events shown faded (12h grace period)"}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] overflow-hidden">
         {error && (
           <div className="p-5">

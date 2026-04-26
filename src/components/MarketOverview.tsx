@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, Activity, DollarSign, Layers, Gauge } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, DollarSign, Layers } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 
 type CoinRow = {
@@ -220,7 +220,7 @@ export default function MarketOverview() {
         {/* Fear & Greed */}
         <div className="card-glow rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
           <div className="mb-3 flex items-center gap-2">
-            <Gauge size={16} className="text-[var(--color-accent)]" />
+            <Activity size={16} className="text-[var(--color-accent)]" />
             <h3 className="text-sm font-bold">
               {locale === "id" ? "Fear & Greed Index" : "Fear & Greed Index"}
             </h3>

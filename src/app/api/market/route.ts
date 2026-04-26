@@ -10,6 +10,7 @@ type CoinRow = {
   image: string;
   current_price: number;
   market_cap: number;
+  total_volume_24h: number;
   price_change_24h: number;
   price_change_pct_24h: number;
   sparkline_7d: number[];
@@ -29,6 +30,7 @@ type MarketSnapshot = {
   top10: CoinRow[];
   gainers: CoinRow[];
   losers: CoinRow[];
+  top_volume: CoinRow[];
   btc_dominance_trend: number[];
   fetched_at: string;
 };
@@ -54,7 +56,7 @@ async function fetchCoinGeckoPrices() {
   return r.json();
 }
 
-async function fetchTopCoins(perPage = 50): Promise<CoinRow[]> {
+async function fetchTopCoins(perPage = 250): Promise<CoinRow[]> {
   const r = await fetch(
     `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=1&sparkline=true&price_change_percentage=24h`,
     {
@@ -72,11 +74,19 @@ async function fetchTopCoins(perPage = 50): Promise<CoinRow[]> {
     image: c.image,
     current_price: c.current_price || 0,
     market_cap: c.market_cap || 0,
+    total_volume_24h: c.total_volume || 0,
     price_change_24h: c.price_change_24h || 0,
     price_change_pct_24h: c.price_change_percentage_24h || 0,
     sparkline_7d: c.sparkline_in_7d?.price?.slice(-50) || [],
   }));
 }
+
+// Stablecoins di-exclude dari volume ranking — bukan target trader
+const STABLECOIN_IDS = new Set([
+  "tether", "usd-coin", "dai", "first-digital-usd", "true-usd",
+  "paxos-standard", "frax", "usdd", "ethena-usde", "paypal-usd",
+  "binance-usd",
+]);
 
 async function fetchFearGreed() {
   try {
@@ -124,7 +134,7 @@ export async function GET() {
     const [global, prices, topCoins, fearGreed, btcDominanceTrend] = await Promise.all([
       fetchCoinGeckoGlobal(),
       fetchCoinGeckoPrices(),
-      fetchTopCoins(50),
+      fetchTopCoins(250),
       fetchFearGreed(),
       fetchBtcDominanceTrend(),
     ]);
@@ -147,13 +157,21 @@ export async function GET() {
     const alts_share = total_market_cap > 0 ? total3_market_cap / total_market_cap : 0;
     const total3_change_24h = total_change_24h / Math.max(alts_share, 0.1);
 
-    // Top 10, gainers, losers (dari topCoins yang sudah di-fetch)
+    // Top 10 (display tetap top 10 by mcap)
     const top10 = topCoins.slice(0, 10);
-    const sortedByGain = [...topCoins].sort(
+
+    // Gainers/Losers — dari universe top 250, exclude stablecoin (% pergerakan ~0)
+    const movableCoins = topCoins.filter((c) => !STABLECOIN_IDS.has(c.id));
+    const sortedByGain = [...movableCoins].sort(
       (a, b) => b.price_change_pct_24h - a.price_change_pct_24h
     );
     const gainers = sortedByGain.slice(0, 5);
     const losers = sortedByGain.slice(-5).reverse();
+
+    // Top volume — exclude stablecoin biar lebih meaningful buat trader
+    const top_volume = [...movableCoins]
+      .sort((a, b) => b.total_volume_24h - a.total_volume_24h)
+      .slice(0, 5);
 
     // Sparkline untuk macro cards
     const btcCoin = topCoins.find((c) => c.id === "bitcoin");
@@ -175,6 +193,7 @@ export async function GET() {
       top10,
       gainers,
       losers,
+      top_volume,
       btc_dominance_trend: btcDominanceTrend,
       fetched_at: new Date().toISOString(),
     };

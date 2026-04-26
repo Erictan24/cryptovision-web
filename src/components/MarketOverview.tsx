@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, Activity, DollarSign, Layers } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, DollarSign, Layers, Flame } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 
 type CoinRow = {
@@ -11,6 +11,7 @@ type CoinRow = {
   image: string;
   current_price: number;
   market_cap: number;
+  total_volume_24h: number;
   price_change_pct_24h: number;
   sparkline_7d: number[];
 };
@@ -28,6 +29,7 @@ type Snapshot = {
   top10: CoinRow[];
   gainers: CoinRow[];
   losers: CoinRow[];
+  top_volume: CoinRow[];
   fetched_at: string;
 };
 
@@ -304,9 +306,9 @@ export default function MarketOverview() {
         })}
       </div>
 
-      {/* Row 2: Fear & Greed gauge + Top Gainers + Top Losers */}
-      <div className="grid gap-3 lg:grid-cols-3">
-        <div className="card-glow rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
+      {/* Row 2: Fear & Greed gauge + Top Gainers + Top Losers + Top Volume */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="card-glow rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 sm:col-span-2 lg:col-span-1">
           <div className="mb-3 flex items-center gap-2">
             <Activity size={16} className="text-[var(--color-accent)]" />
             <h3 className="text-sm font-bold">
@@ -327,7 +329,7 @@ export default function MarketOverview() {
               {locale === "id" ? "Top Gainers 24h" : "Top Gainers 24h"}
             </h3>
           </div>
-          <ul className="space-y-2">
+          <ul className="space-y-2.5">
             {data.gainers.map((c) => (
               <li key={c.id} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2 min-w-0">
@@ -349,7 +351,7 @@ export default function MarketOverview() {
               {locale === "id" ? "Top Losers 24h" : "Top Losers 24h"}
             </h3>
           </div>
-          <ul className="space-y-2">
+          <ul className="space-y-2.5">
             {data.losers.map((c) => (
               <li key={c.id} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2 min-w-0">
@@ -361,6 +363,36 @@ export default function MarketOverview() {
                 </span>
               </li>
             ))}
+          </ul>
+        </div>
+
+        <div className="card-glow rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Flame size={16} className="text-[var(--color-accent)]" />
+            <h3 className="text-sm font-bold">
+              {locale === "id" ? "Top Volume 24h" : "Top Volume 24h"}
+            </h3>
+          </div>
+          <ul className="space-y-2.5">
+            {data.top_volume.map((c) => {
+              const isUp = c.price_change_pct_24h >= 0;
+              return (
+                <li key={c.id} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img src={c.image} alt={c.symbol} className="h-4 w-4 rounded-full" />
+                    <div className="min-w-0">
+                      <div className="font-semibold truncate">{c.symbol}</div>
+                      <div className="text-[10px] text-[var(--color-text-muted)] truncate">
+                        {fmtUsd(c.total_volume_24h)}
+                      </div>
+                    </div>
+                  </div>
+                  <span className={`font-bold ${isUp ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
+                    {fmtPct(c.price_change_pct_24h)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>

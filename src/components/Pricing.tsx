@@ -114,10 +114,10 @@ export default function Pricing() {
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
               whileHover={{ y: -4 }}
-              className={`card-glow shine-hover relative flex h-full flex-col rounded-2xl border p-5 transition-shadow ${
+              className={`relative flex h-full flex-col rounded-2xl border p-5 transition-all duration-300 ${
                 plan.accent
                   ? "border-[var(--color-accent)] bg-[var(--color-bg-card)] glow-border shadow-lg shadow-[var(--color-accent)]/20 lg:scale-[1.04]"
-                  : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-accent)]/50"
+                  : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-accent)]/50 hover:shadow-md hover:shadow-[var(--color-accent)]/10"
               }`}
             >
               {plan.badge && (

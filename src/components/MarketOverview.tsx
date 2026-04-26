@@ -1,8 +1,75 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TrendingUp, TrendingDown, Activity, DollarSign, Layers, Flame } from "lucide-react";
 import { useLang } from "./LanguageProvider";
+
+// Live ticker dari Binance — update setiap perubahan harga (sub-detik).
+// Symbol yang bukan di Binance akan fallback ke harga dari CoinGecko.
+type LivePrice = { price: number; pct: number };
+
+function useLivePrices(symbols: string[]): Map<string, LivePrice> {
+  const [prices, setPrices] = useState<Map<string, LivePrice>>(() => new Map());
+  const key = symbols.slice().sort().join(",");
+
+  useEffect(() => {
+    if (!symbols.length) return;
+    const streams = symbols.map((s) => `${s.toLowerCase()}usdt@ticker`).join("/");
+    const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
+
+    let ws: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let closed = false;
+
+    const connect = () => {
+      try {
+        ws = new WebSocket(url);
+      } catch {
+        reconnectTimer = setTimeout(connect, 5000);
+        return;
+      }
+
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          const d = msg.data;
+          if (!d || !d.s) return;
+          const symbol = String(d.s).replace(/USDT$/, "");
+          const price = parseFloat(d.c);
+          const pct   = parseFloat(d.P);
+          if (!isFinite(price) || !isFinite(pct)) return;
+          setPrices((prev) => {
+            const next = new Map(prev);
+            next.set(symbol, { price, pct });
+            return next;
+          });
+        } catch {
+          /* ignore parse error */
+        }
+      };
+
+      ws.onclose = () => {
+        if (closed) return;
+        reconnectTimer = setTimeout(connect, 3000);
+      };
+
+      ws.onerror = () => {
+        try { ws?.close(); } catch { /* ignore */ }
+      };
+    };
+
+    connect();
+
+    return () => {
+      closed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      try { ws?.close(); } catch { /* ignore */ }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  return prices;
+}
 
 type CoinRow = {
   id: string;
@@ -188,6 +255,27 @@ export default function MarketOverview() {
     return () => clearInterval(id);
   }, []);
 
+  // Symbol yang lagi di-display — subscribe live dari Binance
+  const liveSymbols = useMemo(() => {
+    if (!data) return [];
+    const set = new Set<string>(["BTC", "ETH"]);
+    data.top10.forEach((c) => set.add(c.symbol));
+    data.gainers.forEach((c) => set.add(c.symbol));
+    data.losers.forEach((c) => set.add(c.symbol));
+    return Array.from(set);
+  }, [data]);
+
+  const live = useLivePrices(liveSymbols);
+
+  // Helper: ambil price/pct live kalau ada, fallback ke API data
+  const getLive = (symbol: string, fallbackPrice: number, fallbackPct: number) => {
+    const l = live.get(symbol);
+    return {
+      price: l?.price ?? fallbackPrice,
+      pct: l?.pct ?? fallbackPct,
+    };
+  };
+
   if (error) {
     return (
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
@@ -209,15 +297,17 @@ export default function MarketOverview() {
     );
   }
 
+  const btcLive = getLive("BTC", data.btc_price, data.btc_change_24h);
+
   const macroCards = [
     {
       icon: DollarSign,
       label: "BTC",
-      value: fmtUsd(data.btc_price),
-      change: data.btc_change_24h,
+      value: fmtUsd(btcLive.price),
+      change: btcLive.pct,
       desc: "Bitcoin Spot",
       sparkline: data.btc_sparkline,
-      sparkColor: data.btc_change_24h >= 0 ? "#10b981" : "#ef4444",
+      sparkColor: btcLive.pct >= 0 ? "#10b981" : "#ef4444",
     },
     {
       icon: Activity,
@@ -258,7 +348,14 @@ export default function MarketOverview() {
           {locale === "id" ? "Market Snapshot" : "Market Snapshot"}
         </h2>
         <span className="text-xs text-[var(--color-text-muted)]">
-          {locale === "id" ? "— update tiap 1 menit" : "— refresh every 1 min"}
+          {locale === "id" ? "— harga live (Binance), ranking refresh 1 mnt" : "— live price (Binance), ranking refreshes every 1 min"}
+        </span>
+        <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-[var(--color-success)]/15 px-2 py-0.5 text-[9px] font-bold text-[var(--color-success)]">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--color-success)] opacity-75"></span>
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-success)]"></span>
+          </span>
+          LIVE
         </span>
       </div>
 
@@ -329,17 +426,20 @@ export default function MarketOverview() {
             </h3>
           </div>
           <ul className="space-y-2.5">
-            {data.gainers.map((c) => (
-              <li key={c.id} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 min-w-0">
-                  <img src={c.image} alt={c.symbol} className="h-4 w-4 rounded-full" />
-                  <span className="font-semibold truncate">{c.symbol}</span>
-                </div>
-                <span className="font-bold text-[var(--color-success)]">
-                  {fmtPct(c.price_change_pct_24h)}
-                </span>
-              </li>
-            ))}
+            {data.gainers.map((c) => {
+              const lp = getLive(c.symbol, c.current_price, c.price_change_pct_24h);
+              return (
+                <li key={c.id} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img src={c.image} alt={c.symbol} className="h-4 w-4 rounded-full" />
+                    <span className="font-semibold truncate">{c.symbol}</span>
+                  </div>
+                  <span className="font-bold text-[var(--color-success)] tabular-nums">
+                    {fmtPct(lp.pct)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </div>
 
@@ -351,17 +451,20 @@ export default function MarketOverview() {
             </h3>
           </div>
           <ul className="space-y-2.5">
-            {data.losers.map((c) => (
-              <li key={c.id} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 min-w-0">
-                  <img src={c.image} alt={c.symbol} className="h-4 w-4 rounded-full" />
-                  <span className="font-semibold truncate">{c.symbol}</span>
-                </div>
-                <span className="font-bold text-[var(--color-danger)]">
-                  {fmtPct(c.price_change_pct_24h)}
-                </span>
-              </li>
-            ))}
+            {data.losers.map((c) => {
+              const lp = getLive(c.symbol, c.current_price, c.price_change_pct_24h);
+              return (
+                <li key={c.id} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img src={c.image} alt={c.symbol} className="h-4 w-4 rounded-full" />
+                    <span className="font-semibold truncate">{c.symbol}</span>
+                  </div>
+                  <span className="font-bold text-[var(--color-danger)] tabular-nums">
+                    {fmtPct(lp.pct)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </div>
 
@@ -389,7 +492,8 @@ export default function MarketOverview() {
             </thead>
             <tbody>
               {data.top10.map((c, i) => {
-                const isUp = c.price_change_pct_24h >= 0;
+                const lp = getLive(c.symbol, c.current_price, c.price_change_pct_24h);
+                const isUp = lp.pct >= 0;
                 const sparkColor = isUp ? "#10b981" : "#ef4444";
                 return (
                   <tr key={c.id} className="border-b border-[var(--color-border)]/40 last:border-0">
@@ -403,9 +507,9 @@ export default function MarketOverview() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-right font-medium">{fmtUsd(c.current_price)}</td>
-                    <td className={`py-3 px-4 text-right font-bold ${isUp ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
-                      {fmtPct(c.price_change_pct_24h)}
+                    <td className="py-3 px-4 text-right font-medium tabular-nums">{fmtUsd(lp.price)}</td>
+                    <td className={`py-3 px-4 text-right font-bold tabular-nums ${isUp ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
+                      {fmtPct(lp.pct)}
                     </td>
                     <td className="py-3 px-4 text-right text-[var(--color-text-muted)]">
                       {fmtUsd(c.total_volume_24h)}

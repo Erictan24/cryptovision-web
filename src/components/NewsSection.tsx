@@ -4,6 +4,169 @@ import { useEffect, useState } from "react";
 import { Newspaper, AlertTriangle, ChevronDown, TrendingUp, TrendingDown, Info } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 
+type ScenarioKey =
+  | "inflation"
+  | "fed_rate"
+  | "fed_press"
+  | "employment"
+  | "unemployment"
+  | "gdp"
+  | "consumer"
+  | "pmi"
+  | "housing"
+  | "durable"
+  | "crypto_specific"
+  | "trade_balance";
+
+type ScenarioText = { bullish: string; bearish: string; explainer: string };
+
+const SCENARIO_TEXT: Record<ScenarioKey, { id: ScenarioText; en: ScenarioText }> = {
+  inflation: {
+    id: {
+      bullish: "Inflasi LEBIH RENDAH dari forecast = Fed cenderung dovish (rate cut) → crypto naik",
+      bearish: "Inflasi LEBIH TINGGI dari forecast = Fed cenderung hawkish (rate tinggi) → crypto turun",
+      explainer: "Inflasi tinggi = Fed pertahankan rate tinggi = USD kuat = crypto melemah. Inflasi rendah = harapan rate cut = crypto naik.",
+    },
+    en: {
+      bullish: "Inflation LOWER than forecast = Fed leans dovish (rate cut) → crypto up",
+      bearish: "Inflation HIGHER than forecast = Fed leans hawkish (rates stay high) → crypto down",
+      explainer: "High inflation = Fed keeps rates high = strong USD = crypto weakens. Low inflation = rate cut hopes = crypto rises.",
+    },
+  },
+  fed_rate: {
+    id: {
+      bullish: "Rate CUT atau dovish statement = likuiditas naik → crypto pump",
+      bearish: "Rate HIKE atau hawkish statement = likuiditas turun → crypto dump",
+      explainer: "Suku bunga = pendingin/penghangat market. Rate cut = uang murah, asset risk-on (termasuk crypto) naik.",
+    },
+    en: {
+      bullish: "Rate CUT or dovish statement = liquidity rises → crypto pumps",
+      bearish: "Rate HIKE or hawkish statement = liquidity drops → crypto dumps",
+      explainer: "Interest rates = market cooler/heater. Rate cut = cheap money, risk-on assets (incl. crypto) rise.",
+    },
+  },
+  fed_press: {
+    id: {
+      bullish: "Powell sound dovish (sinyal rate cut, ekonomi melambat) → crypto naik",
+      bearish: "Powell sound hawkish (komitmen lawan inflasi, rate stay high) → crypto turun",
+      explainer: "Pidato Powell sering memberi clue arah Fed. Tone matters lebih dari kata-kata aktual.",
+    },
+    en: {
+      bullish: "Powell sounds dovish (rate cut signal, slowing economy) → crypto up",
+      bearish: "Powell sounds hawkish (commitment to fight inflation, rates stay high) → crypto down",
+      explainer: "Powell's speech often signals Fed direction. Tone matters more than literal words.",
+    },
+  },
+  employment: {
+    id: {
+      bullish: "NFP / Payroll LEBIH RENDAH dari forecast = ekonomi melambat → Fed cut → crypto naik",
+      bearish: "NFP / Payroll LEBIH TINGGI dari forecast = ekonomi kuat → Fed hawkish → crypto turun",
+      explainer: "Counterintuitive: data ekonomi 'jelek' kadang bullish untuk crypto karena Fed jadi dovish.",
+    },
+    en: {
+      bullish: "NFP / Payroll LOWER than forecast = slowing economy → Fed cut → crypto up",
+      bearish: "NFP / Payroll HIGHER than forecast = strong economy → Fed hawkish → crypto down",
+      explainer: "Counterintuitive: 'bad' economic data is sometimes bullish for crypto because Fed turns dovish.",
+    },
+  },
+  unemployment: {
+    id: {
+      bullish: "Unemployment NAIK / Jobless Claims TINGGI = ekonomi lemah → Fed cenderung cut → crypto naik",
+      bearish: "Unemployment TURUN / Jobless Claims RENDAH = ekonomi kuat → Fed pertahankan rate → crypto turun",
+      explainer: "Pasar tenaga kerja lemah = Fed punya alasan turunkan rate = bullish crypto.",
+    },
+    en: {
+      bullish: "Unemployment UP / Jobless Claims HIGH = weak economy → Fed leans toward cut → crypto up",
+      bearish: "Unemployment DOWN / Jobless Claims LOW = strong economy → Fed keeps rates → crypto down",
+      explainer: "Weak labor market = Fed has reason to cut rates = bullish for crypto.",
+    },
+  },
+  gdp: {
+    id: {
+      bullish: "GDP LEBIH RENDAH = ekonomi melambat → Fed cut → crypto naik",
+      bearish: "GDP LEBIH TINGGI = overheat economy → Fed hawkish → crypto turun",
+      explainer: "GDP tinggi = inflasi risk → Fed pertahankan rate. GDP rendah = recession risk → Fed cut.",
+    },
+    en: {
+      bullish: "GDP LOWER = slowing economy → Fed cut → crypto up",
+      bearish: "GDP HIGHER = overheating economy → Fed hawkish → crypto down",
+      explainer: "High GDP = inflation risk → Fed holds rates. Low GDP = recession risk → Fed cut.",
+    },
+  },
+  consumer: {
+    id: {
+      bullish: "Konsumen LEMAH / sentiment turun = Fed dovish bias → crypto naik",
+      bearish: "Konsumen KUAT / spending tinggi = inflasi pressure → Fed hawkish → crypto turun",
+      explainer: "Spending konsumen kuat = inflasi tetap tinggi = Fed hawkish.",
+    },
+    en: {
+      bullish: "Consumer WEAK / sentiment falling = Fed dovish bias → crypto up",
+      bearish: "Consumer STRONG / high spending = inflation pressure → Fed hawkish → crypto down",
+      explainer: "Strong consumer spending = inflation stays high = Fed hawkish.",
+    },
+  },
+  pmi: {
+    id: {
+      bullish: "PMI < 50 (kontraksi) atau di bawah forecast = ekonomi lemah → Fed cut → crypto naik",
+      bearish: "PMI > 50 (ekspansi) atau di atas forecast = ekonomi kuat → Fed hawkish → crypto turun",
+      explainer: "PMI 50 = neutral. <50 = sektor kontraksi. >50 = ekspansi.",
+    },
+    en: {
+      bullish: "PMI < 50 (contraction) or below forecast = weak economy → Fed cut → crypto up",
+      bearish: "PMI > 50 (expansion) or above forecast = strong economy → Fed hawkish → crypto down",
+      explainer: "PMI 50 = neutral. <50 = sector contraction. >50 = expansion.",
+    },
+  },
+  housing: {
+    id: {
+      bullish: "Housing data LEMAH = ekonomi melambat → Fed dovish → crypto naik",
+      bearish: "Housing data KUAT = ekonomi kuat + suku bunga tahan tinggi → crypto turun",
+      explainer: "Housing sektor sensitif suku bunga. Lemah = sinyal rate cut diperlukan.",
+    },
+    en: {
+      bullish: "Housing data WEAK = slowing economy → Fed dovish → crypto up",
+      bearish: "Housing data STRONG = strong economy + rates stay high → crypto down",
+      explainer: "Housing is rate-sensitive. Weak = signal that rate cuts are needed.",
+    },
+  },
+  durable: {
+    id: {
+      bullish: "Order TURUN = demand lemah → Fed cut → crypto naik",
+      bearish: "Order NAIK = demand kuat → Fed hawkish → crypto turun",
+      explainer: "Indikator awal aktivitas industri. Lemah = recession risk.",
+    },
+    en: {
+      bullish: "Orders DOWN = weak demand → Fed cut → crypto up",
+      bearish: "Orders UP = strong demand → Fed hawkish → crypto down",
+      explainer: "Early indicator of industrial activity. Weak = recession risk.",
+    },
+  },
+  crypto_specific: {
+    id: {
+      bullish: "Approval ETF, regulasi positif, atau adoption news → crypto naik",
+      bearish: "Lawsuit SEC, ban, atau regulasi ketat → crypto turun",
+      explainer: "Berita regulasi langsung pengaruh sentimen crypto market.",
+    },
+    en: {
+      bullish: "ETF approval, positive regulation, or adoption news → crypto up",
+      bearish: "SEC lawsuit, ban, or strict regulation → crypto down",
+      explainer: "Regulatory news directly impacts crypto market sentiment.",
+    },
+  },
+  trade_balance: {
+    id: {
+      bullish: "Defisit BESAR = USD melemah → crypto naik (denominated USD)",
+      bearish: "Surplus BESAR = USD menguat → crypto turun",
+      explainer: "USD strength inversely impacts crypto. Trade defisit = USD lemah.",
+    },
+    en: {
+      bullish: "Large DEFICIT = USD weakens → crypto up (USD-denominated)",
+      bearish: "Large SURPLUS = USD strengthens → crypto down",
+      explainer: "USD strength inversely impacts crypto. Trade deficit = weak USD.",
+    },
+  },
+};
+
 type NewsEvent = {
   title: string;
   country: string;
@@ -15,11 +178,7 @@ type NewsEvent = {
   isCritical: boolean;
   minutesUntil: number;
   hasReleased: boolean;
-  scenario?: {
-    bullish: string;
-    bearish: string;
-    explainer: string;
-  };
+  scenario_key?: ScenarioKey;
 };
 
 const COUNTRY_FLAG: Record<string, string> = {
@@ -184,7 +343,9 @@ export default function NewsSection() {
               {locale === "id" ? "Fokus Negara" : "Country Focus"}
             </div>
             <div className="space-y-1 text-[var(--color-text-secondary)]">
-              <div>🇺🇸 <span className="text-[var(--color-text-muted)]">USD — paling pengaruh ke crypto</span></div>
+              <div>🇺🇸 <span className="text-[var(--color-text-muted)]">
+                {locale === "id" ? "USD — paling pengaruh ke crypto" : "USD — biggest crypto impact"}
+              </span></div>
               <div className="text-[10px] text-[var(--color-text-muted)]">
                 {locale === "id"
                   ? "Khusus event US (Fed, CPI, NFP, dll) + crypto-specific news"
@@ -201,21 +362,35 @@ export default function NewsSection() {
             <div className="space-y-1 text-[var(--color-text-secondary)]">
               <div>
                 <span className="font-bold text-[var(--color-text-secondary)]">Actual</span>
-                <span className="text-[var(--color-text-muted)]"> — hasil aktual rilis</span>
+                <span className="text-[var(--color-text-muted)]">
+                  {locale === "id" ? " — hasil aktual rilis" : " — actual released figure"}
+                </span>
               </div>
               <div>
                 <span className="font-bold text-[var(--color-text-secondary)]">Forecast</span>
-                <span className="text-[var(--color-text-muted)]"> — prediksi analis</span>
+                <span className="text-[var(--color-text-muted)]">
+                  {locale === "id" ? " — prediksi analis" : " — analyst prediction"}
+                </span>
               </div>
               <div>
                 <span className="font-bold text-[var(--color-text-secondary)]">Prior</span>
-                <span className="text-[var(--color-text-muted)]"> — data periode sebelumnya</span>
+                <span className="text-[var(--color-text-muted)]">
+                  {locale === "id" ? " — data periode sebelumnya" : " — previous period data"}
+                </span>
               </div>
               <div className="text-[10px]">
-                <span className="text-[var(--color-success)]">Hijau</span>
-                <span className="text-[var(--color-text-muted)]"> = lebih tinggi dari forecast </span>
-                <span className="text-[var(--color-danger)]">Merah</span>
-                <span className="text-[var(--color-text-muted)]"> = lebih rendah</span>
+                <span className="text-[var(--color-success)]">
+                  {locale === "id" ? "Hijau" : "Green"}
+                </span>
+                <span className="text-[var(--color-text-muted)]">
+                  {locale === "id" ? " = lebih tinggi dari forecast " : " = higher than forecast "}
+                </span>
+                <span className="text-[var(--color-danger)]">
+                  {locale === "id" ? "Merah" : "Red"}
+                </span>
+                <span className="text-[var(--color-text-muted)]">
+                  {locale === "id" ? " = lebih rendah" : " = lower"}
+                </span>
               </div>
             </div>
           </div>
@@ -297,14 +472,17 @@ export default function NewsSection() {
                   cmp === "better" ? "text-[var(--color-success)]" :
                   cmp === "worse" ? "text-[var(--color-danger)]" :
                   "text-[var(--color-text-secondary)]";
+                const scenario = ev.scenario_key
+                  ? SCENARIO_TEXT[ev.scenario_key]?.[locale]
+                  : undefined;
 
                 return (
                   <div
                     key={key}
                     className={`border-b border-[var(--color-border)] last:border-0 transition-colors ${
                       isPast ? "opacity-60" : ""
-                    } ${ev.scenario ? "cursor-pointer hover:bg-[var(--color-bg-primary)]/40" : ""}`}
-                    onClick={() => ev.scenario && toggleExpand(key)}
+                    } ${scenario ? "cursor-pointer hover:bg-[var(--color-bg-primary)]/40" : ""}`}
+                    onClick={() => scenario && toggleExpand(key)}
                   >
                     {/* Main row */}
                     <div className="grid grid-cols-12 items-center gap-2 px-4 py-3 text-sm">
@@ -354,7 +532,7 @@ export default function NewsSection() {
                           <div className="text-[9px] text-[var(--color-text-muted)] uppercase">Prior</div>
                           <div className="text-[var(--color-text-muted)]">{ev.previous || "—"}</div>
                         </div>
-                        {ev.scenario && (
+                        {scenario && (
                           <ChevronDown
                             size={14}
                             className={`text-[var(--color-text-muted)] transition-transform ${isExpanded ? "rotate-180" : ""}`}
@@ -364,11 +542,11 @@ export default function NewsSection() {
                     </div>
 
                     {/* Expanded scenario */}
-                    {isExpanded && ev.scenario && (
+                    {isExpanded && scenario && (
                       <div className="bg-[var(--color-bg-primary)]/40 border-t border-[var(--color-border)] px-4 py-4">
                         <div className="mb-3 flex items-start gap-2 text-xs text-[var(--color-text-secondary)]">
                           <Info size={14} className="mt-0.5 shrink-0 text-[var(--color-accent)]" />
-                          <p>{ev.scenario.explainer}</p>
+                          <p>{scenario.explainer}</p>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-2">
                           <div className="rounded-lg border border-[var(--color-success)]/30 bg-[var(--color-success)]/5 p-3">
@@ -378,7 +556,7 @@ export default function NewsSection() {
                                 {locale === "id" ? "Skenario Bullish" : "Bullish Scenario"}
                               </span>
                             </div>
-                            <p className="text-xs text-[var(--color-text-secondary)]">{ev.scenario.bullish}</p>
+                            <p className="text-xs text-[var(--color-text-secondary)]">{scenario.bullish}</p>
                           </div>
                           <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 p-3">
                             <div className="mb-1 flex items-center gap-1.5">
@@ -387,7 +565,7 @@ export default function NewsSection() {
                                 {locale === "id" ? "Skenario Bearish" : "Bearish Scenario"}
                               </span>
                             </div>
-                            <p className="text-xs text-[var(--color-text-secondary)]">{ev.scenario.bearish}</p>
+                            <p className="text-xs text-[var(--color-text-secondary)]">{scenario.bearish}</p>
                           </div>
                         </div>
                         {isPast && ev.actual && (
@@ -398,7 +576,9 @@ export default function NewsSection() {
                             <div className="text-sm">
                               <span className="text-[var(--color-text-muted)]">Actual: </span>
                               <span className={`font-bold ${actualColor}`}>{ev.actual}</span>
-                              <span className="text-[var(--color-text-muted)]"> vs Forecast {ev.forecast || "—"}</span>
+                              <span className="text-[var(--color-text-muted)]">
+                                {locale === "id" ? " vs Forecast " : " vs Forecast "}{ev.forecast || "—"}
+                              </span>
                               {cmp !== "neutral" && (
                                 <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
                                   {cmp === "better"

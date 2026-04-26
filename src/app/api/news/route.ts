@@ -12,12 +12,132 @@ type RawEvent = {
   impact: "High" | "Medium" | "Low";
   forecast?: string;
   previous?: string;
+  actual?: string;
 };
 
 type NewsEvent = RawEvent & {
   isCritical: boolean;
   minutesUntil: number;
+  hasReleased: boolean;
+  scenario?: {
+    bullish: string;
+    bearish: string;
+    explainer: string;
+  };
 };
+
+// Skenario bullish/bearish per kategori event untuk crypto
+function getScenario(title: string): NewsEvent["scenario"] | undefined {
+  const t = title.toLowerCase();
+
+  // Inflation events (CPI, PCE, PPI)
+  if (/cpi|consumer price|pce|personal consumption|ppi|producer price/i.test(t)) {
+    return {
+      bullish: "Inflasi LEBIH RENDAH dari forecast = Fed cenderung dovish (rate cut) → crypto naik",
+      bearish: "Inflasi LEBIH TINGGI dari forecast = Fed cenderung hawkish (rate tinggi) → crypto turun",
+      explainer: "Inflasi tinggi = Fed pertahankan rate tinggi = USD kuat = crypto melemah. Inflasi rendah = harapan rate cut = crypto naik.",
+    };
+  }
+
+  // Fed rate decisions
+  if (/fed rate|interest rate|federal funds|fomc/i.test(t)) {
+    return {
+      bullish: "Rate CUT atau dovish statement = likuiditas naik → crypto pump",
+      bearish: "Rate HIKE atau hawkish statement = likuiditas turun → crypto dump",
+      explainer: "Suku bunga = pendingin/penghangat market. Rate cut = uang murah, asset risk-on (termasuk crypto) naik.",
+    };
+  }
+
+  // Fed Press Conference / Powell
+  if (/fed press|press conference|powell|fed chair|fed statement/i.test(t)) {
+    return {
+      bullish: "Powell sound dovish (sinyal rate cut, ekonomi melambat) → crypto naik",
+      bearish: "Powell sound hawkish (komitmen lawan inflasi, rate stay high) → crypto turun",
+      explainer: "Pidato Powell sering memberi clue arah Fed. Tone matters lebih dari kata-kata aktual.",
+    };
+  }
+
+  // Employment (NFP, ADP, Unemployment)
+  if (/nfp|non.?farm|payroll|adp|unemployment|jobless|employment change/i.test(t)) {
+    if (/unemployment|jobless/i.test(t)) {
+      return {
+        bullish: "Unemployment NAIK / Jobless Claims TINGGI = ekonomi lemah → Fed cenderung cut → crypto naik",
+        bearish: "Unemployment TURUN / Jobless Claims RENDAH = ekonomi kuat → Fed pertahankan rate → crypto turun",
+        explainer: "Pasar tenaga kerja lemah = Fed punya alasan turunkan rate = bullish crypto.",
+      };
+    }
+    return {
+      bullish: "NFP / Payroll LEBIH RENDAH dari forecast = ekonomi melambat → Fed cut → crypto naik",
+      bearish: "NFP / Payroll LEBIH TINGGI dari forecast = ekonomi kuat → Fed hawkish → crypto turun",
+      explainer: "Counterintuitive: data ekonomi 'jelek' kadang bullish untuk crypto karena Fed jadi dovish.",
+    };
+  }
+
+  // GDP
+  if (/gdp|gross domestic/i.test(t)) {
+    return {
+      bullish: "GDP LEBIH RENDAH = ekonomi melambat → Fed cut → crypto naik",
+      bearish: "GDP LEBIH TINGGI = overheat economy → Fed hawkish → crypto turun",
+      explainer: "GDP tinggi = inflasi risk → Fed pertahankan rate. GDP rendah = recession risk → Fed cut.",
+    };
+  }
+
+  // Retail Sales / Consumer
+  if (/retail sales|consumer sentiment|consumer confidence|michigan|uom/i.test(t)) {
+    return {
+      bullish: "Konsumen LEMAH / sentiment turun = Fed dovish bias → crypto naik",
+      bearish: "Konsumen KUAT / spending tinggi = inflasi pressure → Fed hawkish → crypto turun",
+      explainer: "Spending konsumen kuat = inflasi tetap tinggi = Fed hawkish.",
+    };
+  }
+
+  // PMI / ISM
+  if (/pmi|ism|manufacturing|services/i.test(t)) {
+    return {
+      bullish: "PMI < 50 (kontraksi) atau di bawah forecast = ekonomi lemah → Fed cut → crypto naik",
+      bearish: "PMI > 50 (ekspansi) atau di atas forecast = ekonomi kuat → Fed hawkish → crypto turun",
+      explainer: "PMI 50 = neutral. <50 = sektor kontraksi. >50 = ekspansi.",
+    };
+  }
+
+  // Housing
+  if (/building permits|housing starts|home sales/i.test(t)) {
+    return {
+      bullish: "Housing data LEMAH = ekonomi melambat → Fed dovish → crypto naik",
+      bearish: "Housing data KUAT = ekonomi kuat + suku bunga tahan tinggi → crypto turun",
+      explainer: "Housing sektor sensitif suku bunga. Lemah = sinyal rate cut diperlukan.",
+    };
+  }
+
+  // Durable Goods / Factory Orders
+  if (/durable goods|factory orders/i.test(t)) {
+    return {
+      bullish: "Order TURUN = demand lemah → Fed cut → crypto naik",
+      bearish: "Order NAIK = demand kuat → Fed hawkish → crypto turun",
+      explainer: "Indikator awal aktivitas industri. Lemah = recession risk.",
+    };
+  }
+
+  // Crypto-specific
+  if (/sec|bitcoin etf|crypto|stablecoin|cbdc/i.test(t)) {
+    return {
+      bullish: "Approval ETF, regulasi positif, atau adoption news → crypto naik",
+      bearish: "Lawsuit SEC, ban, atau regulasi ketat → crypto turun",
+      explainer: "Berita regulasi langsung pengaruh sentimen crypto market.",
+    };
+  }
+
+  // Trade Balance
+  if (/trade balance/i.test(t)) {
+    return {
+      bullish: "Defisit BESAR = USD melemah → crypto naik (denominated USD)",
+      bearish: "Surplus BESAR = USD menguat → crypto turun",
+      explainer: "USD strength inversely impacts crypto. Trade defisit = USD lemah.",
+    };
+  }
+
+  return undefined;
+}
 
 // Crypto-specific — always include regardless of country/impact.
 // Use word boundary match (SEC substring collides with "Sector" etc.)
@@ -126,6 +246,8 @@ async function fetchCalendar(): Promise<RawEvent[]> {
 export async function GET() {
   const raw = await fetchCalendar();
   const now = Date.now();
+  // Grace period: keep past events 12 jam agar user bisa baca hasilnya
+  const graceMs = 12 * 60 * 60 * 1000;
   const oneWeekAhead = now + 7 * 24 * 60 * 60 * 1000;
 
   const seen = new Set<string>();
@@ -136,9 +258,8 @@ export async function GET() {
     const ts = new Date(e.date).getTime();
     if (Number.isNaN(ts)) continue;
 
-    // Window: dari sekarang sampai 7 hari ke depan
-    // Past events otomatis hilang, future event > 7 hari di-skip
-    if (ts < now) continue;
+    // Window: 12 jam lalu → 7 hari ke depan
+    if (ts < now - graceMs) continue;
     if (ts > oneWeekAhead) continue;
 
     if (!isRelevantForCrypto(e)) continue;
@@ -151,13 +272,15 @@ export async function GET() {
       ...e,
       isCritical: matchesWordBoundary(e.title, CRYPTO_KEYWORDS),
       minutesUntil: Math.round((ts - now) / 60000),
+      hasReleased: ts <= now,
+      scenario: getScenario(e.title),
     });
   }
 
   events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return NextResponse.json({
-    events,  // tampilkan semua dalam window 7 hari
+    events,
     updatedAt: new Date().toISOString(),
   });
 }

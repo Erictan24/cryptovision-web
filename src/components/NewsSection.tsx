@@ -56,7 +56,8 @@ export default function NewsSection() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch("/api/news")
+    // Cache-bust di client agar tidak ambil dari browser cache
+    fetch(`/api/news?t=${Date.now()}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setEvents(d.events || []))
       .catch(() => setError(true));

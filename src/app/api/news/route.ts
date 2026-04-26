@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-export const revalidate = 1800; // 30 min server cache
+// Force dynamic — supaya selalu re-evaluate route, jangan static cache.
+// revalidate dikecilkan ke 5 menit agar news update lebih cepat.
+export const dynamic = "force-dynamic";
+export const revalidate = 300; // 5 min server cache
 
 type RawEvent = {
   title: string;
@@ -96,11 +99,13 @@ function isRelevantForCrypto(e: RawEvent): boolean {
 
 async function fetchCalendar(): Promise<RawEvent[]> {
   const all: RawEvent[] = [];
+  // Cache-bust query param agar Forex Factory CDN tidak return data lama
+  const cacheBust = `?t=${Math.floor(Date.now() / (5 * 60 * 1000))}`;
   for (const url of FF_URLS) {
     try {
-      const resp = await fetch(url, {
+      const resp = await fetch(url + cacheBust, {
         headers: { "User-Agent": "Mozilla/5.0" },
-        next: { revalidate: 1800 },
+        next: { revalidate: 300 },
       });
       if (resp.ok) {
         const data = (await resp.json()) as RawEvent[];

@@ -56,7 +56,7 @@ export default function ContactFloat() {
     {
       iconNode: <MessageCircle size={20} />,
       label: locale === "id" ? "Chat Admin" : "Chat Admin",
-      href: "https://t.me/Erictan24",
+      href: "https://t.me/Ericckk_24",
       bgClass: "bg-[var(--color-accent)]",
     },
   ];

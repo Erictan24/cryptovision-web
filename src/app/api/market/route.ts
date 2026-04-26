@@ -23,11 +23,13 @@ type MarketSnapshot = {
   total_market_cap: number;
   total3_market_cap: number;
   total3_change_24h: number;
+  btc_sparkline: number[];     // 7d BTC price
+  eth_sparkline: number[];     // 7d ETH price (proxy untuk TOTAL3 trend)
   fear_greed: { value: number; label: string } | null;
   top10: CoinRow[];
   gainers: CoinRow[];
   losers: CoinRow[];
-  btc_dominance_trend: number[]; // 30 hari
+  btc_dominance_trend: number[];
   fetched_at: string;
 };
 
@@ -153,6 +155,12 @@ export async function GET() {
     const gainers = sortedByGain.slice(0, 5);
     const losers = sortedByGain.slice(-5).reverse();
 
+    // Sparkline untuk macro cards
+    const btcCoin = topCoins.find((c) => c.id === "bitcoin");
+    const ethCoin = topCoins.find((c) => c.id === "ethereum");
+    const btc_sparkline = btcCoin?.sparkline_7d || [];
+    const eth_sparkline = ethCoin?.sparkline_7d || [];
+
     const snapshot: MarketSnapshot = {
       btc_price,
       btc_change_24h,
@@ -161,6 +169,8 @@ export async function GET() {
       total_market_cap,
       total3_market_cap,
       total3_change_24h,
+      btc_sparkline,
+      eth_sparkline,
       fear_greed: fearGreed,
       top10,
       gainers,

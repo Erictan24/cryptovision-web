@@ -22,6 +22,8 @@ type Snapshot = {
   usdt_dominance: number;
   total3_market_cap: number;
   total3_change_24h: number;
+  btc_sparkline: number[];
+  eth_sparkline: number[];
   fear_greed: { value: number; label: string } | null;
   top10: CoinRow[];
   gainers: CoinRow[];
@@ -42,33 +44,20 @@ function fmtPct(n: number): string {
   return `${sign}${n.toFixed(2)}%`;
 }
 
-function fearGreedColor(v: number): string {
-  if (v <= 25) return "text-[var(--color-danger)]";
-  if (v <= 45) return "text-[var(--color-warning,#f59e0b)]";
-  if (v <= 55) return "text-[var(--color-text-muted)]";
-  if (v <= 75) return "text-[var(--color-success)]";
-  return "text-[var(--color-success)]";
-}
-
-function Sparkline({ data, color }: { data: number[]; color: string }) {
+function Sparkline({ data, color, width = 110, height = 32 }: {
+  data: number[]; color: string; width?: number; height?: number;
+}) {
   if (!data || data.length < 2) return null;
-  // Downsample untuk smoother — ambil tiap N point biar tidak terlalu padat
   const step = Math.max(1, Math.floor(data.length / 30));
   const sampled = data.filter((_, i) => i % step === 0);
-
   const min = Math.min(...sampled);
   const max = Math.max(...sampled);
   const range = max - min || 1;
-  const w = 110;
-  const h = 32;
-  const dx = w / (sampled.length - 1);
-
+  const dx = width / (sampled.length - 1);
   const points = sampled.map((v, i) => ({
     x: i * dx,
-    y: h - ((v - min) / range) * h * 0.85 - 2,
+    y: height - ((v - min) / range) * height * 0.85 - 2,
   }));
-
-  // Smooth path pakai cubic bezier
   let linePath = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
   for (let i = 1; i < points.length; i++) {
     const prev = points[i - 1];
@@ -76,11 +65,10 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
     const cpx = (prev.x + cur.x) / 2;
     linePath += ` Q ${cpx.toFixed(2)} ${prev.y.toFixed(2)} ${cur.x.toFixed(2)} ${cur.y.toFixed(2)}`;
   }
-  const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(2)} ${h} L 0 ${h} Z`;
-
-  const gradId = `sparkgrad-${color.replace("#", "")}`;
+  const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(2)} ${height} L 0 ${height} Z`;
+  const gradId = `sparkgrad-${color.replace("#", "")}-${width}`;
   return (
-    <svg width={w} height={h}>
+    <svg width={width} height={height}>
       <defs>
         <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.4" />
@@ -90,6 +78,93 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
       <path d={areaPath} fill={`url(#${gradId})`} />
       <path d={linePath} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+// Half-circle gauge — CoinMarketCap style
+function FearGreedGauge({ value, label }: { value: number; label: string }) {
+  const cx = 110;
+  const cy = 110;
+  const r = 90;
+  const startAngle = 180; // kiri
+  const endAngle = 0;     // kanan
+
+  // Posisi needle (0 = -180°, 100 = 0°)
+  const needleAngle = startAngle - (value / 100) * 180;
+  const needleRad = (needleAngle * Math.PI) / 180;
+  const needleX = cx + Math.cos(needleRad) * (r - 10);
+  const needleY = cy - Math.sin(needleRad) * (r - 10);
+
+  // 5 segment arc (Extreme Fear → Extreme Greed)
+  const segments = [
+    { from: 0,  to: 20, color: "#dc2626" },  // Extreme Fear
+    { from: 20, to: 40, color: "#ea580c" },  // Fear
+    { from: 40, to: 60, color: "#eab308" },  // Neutral
+    { from: 60, to: 80, color: "#84cc16" },  // Greed
+    { from: 80, to: 100, color: "#16a34a" }, // Extreme Greed
+  ];
+
+  function arcPath(fromPct: number, toPct: number): string {
+    const a1 = startAngle - (fromPct / 100) * 180;
+    const a2 = startAngle - (toPct / 100) * 180;
+    const x1 = cx + Math.cos((a1 * Math.PI) / 180) * r;
+    const y1 = cy - Math.sin((a1 * Math.PI) / 180) * r;
+    const x2 = cx + Math.cos((a2 * Math.PI) / 180) * r;
+    const y2 = cy - Math.sin((a2 * Math.PI) / 180) * r;
+    return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+  }
+
+  const valueColor =
+    value <= 20 ? "#dc2626" :
+    value <= 40 ? "#ea580c" :
+    value <= 60 ? "#eab308" :
+    value <= 80 ? "#84cc16" : "#16a34a";
+
+  return (
+    <div className="flex flex-col items-center">
+      <svg width="220" height="140" viewBox="0 0 220 140">
+        {segments.map((s) => (
+          <path
+            key={s.from}
+            d={arcPath(s.from, s.to)}
+            fill="none"
+            stroke={s.color}
+            strokeWidth="14"
+            strokeLinecap="butt"
+          />
+        ))}
+        {/* Needle */}
+        <line
+          x1={cx}
+          y1={cy}
+          x2={needleX}
+          y2={needleY}
+          stroke="#f8fafc"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <circle cx={cx} cy={cy} r="6" fill="#f8fafc" />
+        {/* Value text */}
+        <text
+          x={cx}
+          y={cy - 25}
+          textAnchor="middle"
+          fontSize="36"
+          fontWeight="bold"
+          fill={valueColor}
+        >
+          {value}
+        </text>
+      </svg>
+      <div className="-mt-2 text-sm font-semibold" style={{ color: valueColor }}>
+        {label}
+      </div>
+      <div className="mt-1 flex w-full justify-between px-2 text-[9px] text-[var(--color-text-muted)]">
+        <span>Extreme Fear</span>
+        <span>Neutral</span>
+        <span>Extreme Greed</span>
+      </div>
+    </div>
   );
 }
 
@@ -140,6 +215,8 @@ export default function MarketOverview() {
       value: fmtUsd(data.btc_price),
       change: data.btc_change_24h,
       desc: "Bitcoin Spot",
+      sparkline: data.btc_sparkline,
+      sparkColor: data.btc_change_24h >= 0 ? "#10b981" : "#ef4444",
     },
     {
       icon: Activity,
@@ -148,6 +225,8 @@ export default function MarketOverview() {
       change: 0,
       desc: locale === "id" ? "Bitcoin Dominance" : "BTC Dominance",
       hideChange: true,
+      sparkline: data.btc_sparkline,
+      sparkColor: "#f7931a",
     },
     {
       icon: Layers,
@@ -156,6 +235,8 @@ export default function MarketOverview() {
       change: 0,
       desc: locale === "id" ? "Naik = market takut" : "Up = market fearful",
       hideChange: true,
+      sparkline: data.btc_sparkline.map(p => 1 / (p / 1000)), // inverse-ish proxy
+      sparkColor: "#26a17b",
     },
     {
       icon: TrendingUp,
@@ -163,12 +244,13 @@ export default function MarketOverview() {
       value: fmtUsd(data.total3_market_cap),
       change: data.total3_change_24h,
       desc: locale === "id" ? "Altcoin Market Cap" : "Altcoin Market Cap",
+      sparkline: data.eth_sparkline,
+      sparkColor: data.total3_change_24h >= 0 ? "#10b981" : "#ef4444",
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Title */}
       <div className="flex items-center gap-2">
         <Activity size={18} className="text-[var(--color-accent)]" />
         <h2 className="text-lg font-bold">
@@ -179,7 +261,7 @@ export default function MarketOverview() {
         </span>
       </div>
 
-      {/* Row 1: Macro indicators */}
+      {/* Row 1: Macro cards dengan sparkline */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {macroCards.map((c) => {
           const isUp = c.change >= 0;
@@ -208,16 +290,22 @@ export default function MarketOverview() {
                   </span>
                 )}
               </div>
-              <p className="mt-2 text-xl font-bold">{c.value}</p>
-              <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">{c.desc}</p>
+              <div className="mt-2 flex items-end justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xl font-bold truncate">{c.value}</p>
+                  <p className="mt-1 text-[11px] text-[var(--color-text-muted)] truncate">{c.desc}</p>
+                </div>
+                <div className="shrink-0 -mr-1">
+                  <Sparkline data={c.sparkline} color={c.sparkColor} width={90} height={36} />
+                </div>
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Row 2: Fear & Greed + Top Gainers + Top Losers */}
+      {/* Row 2: Fear & Greed gauge + Top Gainers + Top Losers */}
       <div className="grid gap-3 lg:grid-cols-3">
-        {/* Fear & Greed */}
         <div className="card-glow rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
           <div className="mb-3 flex items-center gap-2">
             <Activity size={16} className="text-[var(--color-accent)]" />
@@ -226,23 +314,12 @@ export default function MarketOverview() {
             </h3>
           </div>
           {data.fear_greed ? (
-            <div className="flex flex-col items-center justify-center py-4">
-              <div className={`text-5xl font-bold ${fearGreedColor(data.fear_greed.value)}`}>
-                {data.fear_greed.value}
-              </div>
-              <div className={`mt-1 text-sm font-semibold ${fearGreedColor(data.fear_greed.value)}`}>
-                {data.fear_greed.label}
-              </div>
-              <div className="mt-2 text-[10px] text-[var(--color-text-muted)]">
-                0 = Extreme Fear &nbsp;|&nbsp; 100 = Extreme Greed
-              </div>
-            </div>
+            <FearGreedGauge value={data.fear_greed.value} label={data.fear_greed.label} />
           ) : (
             <p className="text-xs text-[var(--color-text-muted)]">N/A</p>
           )}
         </div>
 
-        {/* Top Gainers */}
         <div className="card-glow rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
           <div className="mb-3 flex items-center gap-2">
             <TrendingUp size={16} className="text-[var(--color-success)]" />
@@ -265,7 +342,6 @@ export default function MarketOverview() {
           </ul>
         </div>
 
-        {/* Top Losers */}
         <div className="card-glow rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
           <div className="mb-3 flex items-center gap-2">
             <TrendingDown size={16} className="text-[var(--color-danger)]" />
@@ -289,7 +365,7 @@ export default function MarketOverview() {
         </div>
       </div>
 
-      {/* Row 3: Top 10 by Market Cap */}
+      {/* Row 3: Top 10 by Market Cap — column spacing fixed */}
       <div className="card-glow rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
         <div className="mb-3 flex items-center gap-2">
           <Layers size={16} className="text-[var(--color-accent)]" />
@@ -298,15 +374,15 @@ export default function MarketOverview() {
           </h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-xs" style={{ minWidth: 720 }}>
             <thead className="text-[var(--color-text-muted)]">
               <tr className="border-b border-[var(--color-border)]">
-                <th className="py-2 text-left">#</th>
-                <th className="py-2 text-left">Coin</th>
-                <th className="py-2 text-right">Price</th>
-                <th className="py-2 text-right">24h</th>
-                <th className="py-2 text-right hidden sm:table-cell">Market Cap</th>
-                <th className="py-2 text-right hidden md:table-cell">7d</th>
+                <th className="py-2 pr-2 text-left w-10">#</th>
+                <th className="py-2 pr-4 text-left">Coin</th>
+                <th className="py-2 px-4 text-right">Price</th>
+                <th className="py-2 px-4 text-right">24h</th>
+                <th className="py-2 px-4 text-right">Market Cap</th>
+                <th className="py-2 pl-6 text-right">7d</th>
               </tr>
             </thead>
             <tbody>
@@ -315,8 +391,8 @@ export default function MarketOverview() {
                 const sparkColor = isUp ? "#10b981" : "#ef4444";
                 return (
                   <tr key={c.id} className="border-b border-[var(--color-border)]/40 last:border-0">
-                    <td className="py-2 text-[var(--color-text-muted)]">{i + 1}</td>
-                    <td className="py-2">
+                    <td className="py-3 pr-2 text-[var(--color-text-muted)]">{i + 1}</td>
+                    <td className="py-3 pr-4">
                       <div className="flex items-center gap-2">
                         <img src={c.image} alt={c.symbol} className="h-5 w-5 rounded-full" />
                         <div>
@@ -325,15 +401,17 @@ export default function MarketOverview() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-2 text-right font-medium">{fmtUsd(c.current_price)}</td>
-                    <td className={`py-2 text-right font-bold ${isUp ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
+                    <td className="py-3 px-4 text-right font-medium">{fmtUsd(c.current_price)}</td>
+                    <td className={`py-3 px-4 text-right font-bold ${isUp ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
                       {fmtPct(c.price_change_pct_24h)}
                     </td>
-                    <td className="py-2 text-right text-[var(--color-text-muted)] hidden sm:table-cell">
+                    <td className="py-3 px-4 text-right text-[var(--color-text-muted)]">
                       {fmtUsd(c.market_cap)}
                     </td>
-                    <td className="py-2 text-right hidden md:table-cell">
-                      <Sparkline data={c.sparkline_7d} color={sparkColor} />
+                    <td className="py-3 pl-6 text-right">
+                      <div className="flex justify-end">
+                        <Sparkline data={c.sparkline_7d} color={sparkColor} />
+                      </div>
                     </td>
                   </tr>
                 );

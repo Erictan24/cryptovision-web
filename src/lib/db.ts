@@ -64,10 +64,38 @@ export async function initDb() {
       rr NUMERIC,
       reasons JSONB,
       executed BOOLEAN DEFAULT false,
+      status TEXT DEFAULT 'pending',
       created_at TIMESTAMP DEFAULT NOW()
     )
   `;
+  // Add status column kalau tabel sudah ada dari versi lama
+  await sql`ALTER TABLE signals ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending'`;
   await sql`CREATE INDEX IF NOT EXISTS idx_signals_created ON signals(created_at DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_signals_status ON signals(status)`;
+
+  // Posisi yang lagi running (limit terisi, belum close)
+  await sql`
+    CREATE TABLE IF NOT EXISTS positions (
+      id BIGSERIAL PRIMARY KEY,
+      signal_id BIGINT,
+      symbol TEXT NOT NULL,
+      direction TEXT NOT NULL,
+      strategy TEXT DEFAULT 'swing',
+      quality TEXT,
+      entry NUMERIC,
+      sl NUMERIC,
+      tp1 NUMERIC,
+      tp2 NUMERIC,
+      rr NUMERIC,
+      qty NUMERIC,
+      reasons JSONB,
+      tp1_hit BOOLEAN DEFAULT false,
+      bep_active BOOLEAN DEFAULT false,
+      opened_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_positions_symbol ON positions(symbol)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_positions_opened ON positions(opened_at DESC)`;
 
   // Trade yang sudah selesai — Win/Loss/BEP
   await sql`
@@ -141,9 +169,79 @@ export async function pushTradeDb(t: {
   `;
 }
 
-export async function getSignalsDb(limit = 50) {
+export async function getSignalsDb(limit = 50, status?: string) {
   const sql = getDb();
+  if (status) {
+    return await sql`SELECT * FROM signals WHERE status = ${status} ORDER BY created_at DESC LIMIT ${limit}`;
+  }
   return await sql`SELECT * FROM signals ORDER BY created_at DESC LIMIT ${limit}`;
+}
+
+/** Update signal status (bot panggil saat limit fills / closed). */
+export async function updateSignalStatusDb(symbol: string, status: string) {
+  const sql = getDb();
+  // Update signal pending terbaru untuk symbol ini (max 1)
+  await sql`
+    UPDATE signals SET status = ${status}
+    WHERE id = (
+      SELECT id FROM signals
+      WHERE symbol = ${symbol} AND status = 'pending'
+      ORDER BY created_at DESC LIMIT 1
+    )
+  `;
+}
+
+// ─── POSITIONS (running) ─────────────────────────────────────
+
+export async function pushPositionDb(p: {
+  symbol: string; direction: string; strategy?: string; quality?: string;
+  entry?: number; sl?: number; tp1?: number; tp2?: number; rr?: number;
+  qty?: number; reasons?: string[]; signal_id?: number;
+}) {
+  const sql = getDb();
+  // Upsert by symbol — bot bisa update kalau posisi yang sama (e.g. tp1_hit, bep_active)
+  await sql`
+    INSERT INTO positions (symbol, direction, strategy, quality, entry, sl, tp1, tp2, rr, qty, reasons, signal_id)
+    VALUES (${p.symbol}, ${p.direction}, ${p.strategy || 'swing'}, ${p.quality || null},
+            ${p.entry || null}, ${p.sl || null}, ${p.tp1 || null}, ${p.tp2 || null},
+            ${p.rr || null}, ${p.qty || null},
+            ${JSON.stringify(p.reasons || [])}, ${p.signal_id || null})
+    ON CONFLICT (symbol) DO UPDATE SET
+      direction = EXCLUDED.direction,
+      strategy = EXCLUDED.strategy,
+      entry = EXCLUDED.entry,
+      sl = EXCLUDED.sl,
+      tp1 = EXCLUDED.tp1,
+      tp2 = EXCLUDED.tp2,
+      rr = EXCLUDED.rr,
+      qty = EXCLUDED.qty,
+      opened_at = NOW()
+  `;
+}
+
+export async function updatePositionStateDb(symbol: string, opts: {
+  tp1_hit?: boolean; bep_active?: boolean; sl?: number;
+}) {
+  const sql = getDb();
+  if (opts.sl !== undefined) {
+    await sql`UPDATE positions SET sl = ${opts.sl} WHERE symbol = ${symbol}`;
+  }
+  if (opts.tp1_hit !== undefined) {
+    await sql`UPDATE positions SET tp1_hit = ${opts.tp1_hit} WHERE symbol = ${symbol}`;
+  }
+  if (opts.bep_active !== undefined) {
+    await sql`UPDATE positions SET bep_active = ${opts.bep_active} WHERE symbol = ${symbol}`;
+  }
+}
+
+export async function deletePositionDb(symbol: string) {
+  const sql = getDb();
+  await sql`DELETE FROM positions WHERE symbol = ${symbol}`;
+}
+
+export async function getPositionsDb() {
+  const sql = getDb();
+  return await sql`SELECT * FROM positions ORDER BY opened_at DESC`;
 }
 
 export async function getTradesDb(limit = 100) {

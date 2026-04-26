@@ -41,7 +41,7 @@ export default function SignalsPage() {
 
   useEffect(() => {
     const load = () =>
-      fetch(`/api/signals?limit=50&t=${Date.now()}`, { cache: "no-store" })
+      fetch(`/api/signals?limit=50&status=pending&t=${Date.now()}`, { cache: "no-store" })
         .then((r) => r.json())
         .then((d) => {
           if (d.ok) setSignals(d.signals || []);

@@ -30,7 +30,6 @@ type MarketSnapshot = {
   top10: CoinRow[];
   gainers: CoinRow[];
   losers: CoinRow[];
-  top_volume: CoinRow[];
   btc_dominance_trend: number[];
   fetched_at: string;
 };
@@ -166,8 +165,6 @@ export async function GET() {
 
     // Top 10 by 24h volume (table utama)
     const top10 = sortedByVolume.slice(0, 10);
-    // Top 5 by 24h volume (card kecil)
-    const top_volume = sortedByVolume.slice(0, 5);
 
     // Gainers/Losers — dari universe top 250, exclude stablecoin
     const sortedByGain = [...movableCoins].sort(
@@ -196,7 +193,6 @@ export async function GET() {
       top10,
       gainers,
       losers,
-      top_volume,
       btc_dominance_trend: btcDominanceTrend,
       fetched_at: new Date().toISOString(),
     };

@@ -397,12 +397,12 @@ export default function MarketOverview() {
         </div>
       </div>
 
-      {/* Row 3: Top 10 by Market Cap — column spacing fixed */}
+      {/* Row 3: Top 10 by 24h Volume */}
       <div className="card-glow rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
         <div className="mb-3 flex items-center gap-2">
-          <Layers size={16} className="text-[var(--color-accent)]" />
+          <Flame size={16} className="text-[var(--color-accent)]" />
           <h3 className="text-sm font-bold">
-            {locale === "id" ? "Top 10 Coin (Market Cap)" : "Top 10 Coins (Market Cap)"}
+            {locale === "id" ? "Top 10 Coin (Volume 24h)" : "Top 10 Coins (24h Volume)"}
           </h3>
         </div>
         <div className="overflow-x-auto">
@@ -413,7 +413,7 @@ export default function MarketOverview() {
                 <th className="py-2 pr-4 text-left">Coin</th>
                 <th className="py-2 px-4 text-right">Price</th>
                 <th className="py-2 px-4 text-right">24h</th>
-                <th className="py-2 px-4 text-right">Market Cap</th>
+                <th className="py-2 px-4 text-right">Volume 24h</th>
                 <th className="py-2 pl-6 text-right">7d</th>
               </tr>
             </thead>
@@ -438,7 +438,7 @@ export default function MarketOverview() {
                       {fmtPct(c.price_change_pct_24h)}
                     </td>
                     <td className="py-3 px-4 text-right text-[var(--color-text-muted)]">
-                      {fmtUsd(c.market_cap)}
+                      {fmtUsd(c.total_volume_24h)}
                     </td>
                     <td className="py-3 pl-6 text-right">
                       <div className="flex justify-end">

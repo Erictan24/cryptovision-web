@@ -157,21 +157,24 @@ export async function GET() {
     const alts_share = total_market_cap > 0 ? total3_market_cap / total_market_cap : 0;
     const total3_change_24h = total_change_24h / Math.max(alts_share, 0.1);
 
-    // Top 10 (display tetap top 10 by mcap)
-    const top10 = topCoins.slice(0, 10);
-
-    // Gainers/Losers — dari universe top 250, exclude stablecoin (% pergerakan ~0)
+    // Universe minus stablecoin (semua ranking di-derive dari sini)
     const movableCoins = topCoins.filter((c) => !STABLECOIN_IDS.has(c.id));
+
+    const sortedByVolume = [...movableCoins].sort(
+      (a, b) => b.total_volume_24h - a.total_volume_24h
+    );
+
+    // Top 10 by 24h volume (table utama)
+    const top10 = sortedByVolume.slice(0, 10);
+    // Top 5 by 24h volume (card kecil)
+    const top_volume = sortedByVolume.slice(0, 5);
+
+    // Gainers/Losers — dari universe top 250, exclude stablecoin
     const sortedByGain = [...movableCoins].sort(
       (a, b) => b.price_change_pct_24h - a.price_change_pct_24h
     );
     const gainers = sortedByGain.slice(0, 5);
     const losers = sortedByGain.slice(-5).reverse();
-
-    // Top volume — exclude stablecoin biar lebih meaningful buat trader
-    const top_volume = [...movableCoins]
-      .sort((a, b) => b.total_volume_24h - a.total_volume_24h)
-      .slice(0, 5);
 
     // Sparkline untuk macro cards
     const btcCoin = topCoins.find((c) => c.id === "bitcoin");

@@ -178,18 +178,17 @@ export default function NewsSection() {
             </div>
           </div>
 
-          {/* Bendera */}
+          {/* Negara */}
           <div>
             <div className="mb-1.5 text-[10px] font-bold uppercase text-[var(--color-text-muted)]">
-              {locale === "id" ? "Bendera Negara" : "Country Flag"}
+              {locale === "id" ? "Fokus Negara" : "Country Focus"}
             </div>
             <div className="space-y-1 text-[var(--color-text-secondary)]">
               <div>🇺🇸 <span className="text-[var(--color-text-muted)]">USD — paling pengaruh ke crypto</span></div>
-              <div>🇪🇺 🇬🇧 🇯🇵 <span className="text-[var(--color-text-muted)]">major rate decisions</span></div>
               <div className="text-[10px] text-[var(--color-text-muted)]">
                 {locale === "id"
-                  ? "Hanya event high-impact USD + central bank lain ditampilkan"
-                  : "Only high-impact USD + major central banks shown"}
+                  ? "Khusus event US (Fed, CPI, NFP, dll) + crypto-specific news"
+                  : "US events only (Fed, CPI, NFP, etc) + crypto-specific news"}
               </div>
             </div>
           </div>

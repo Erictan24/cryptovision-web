@@ -194,27 +194,19 @@ function matchesWordBoundary(title: string, keywords: string[]): boolean {
 }
 
 function isRelevantForCrypto(e: RawEvent): boolean {
+  // Khusus US (USD) saja — sesuai permintaan user
+  if (e.country !== "USD") return false;
+
   // 1. Crypto-specific keyword → always include
   if (matchesWordBoundary(e.title, CRYPTO_KEYWORDS)) return true;
 
   // 2. USD High impact → always include
-  if (e.country === "USD" && e.impact === "High") return true;
+  if (e.impact === "High") return true;
 
   // 3. USD Medium/Low impact + matches known US market-mover
-  // Diperluas dari Medium-only ke include Low juga, agar match TradingView calendar
   if (
-    e.country === "USD" &&
     (e.impact === "Medium" || e.impact === "Low") &&
     matchesWordBoundary(e.title, US_MARKET_MOVERS)
-  ) {
-    return true;
-  }
-
-  // 4. Major non-USD central bank rate decision (High only)
-  if (
-    e.impact === "High" &&
-    ["EUR", "GBP", "JPY", "CAD", "AUD"].includes(e.country) &&
-    matchesWordBoundary(e.title, MAJOR_RATE_DECISION)
   ) {
     return true;
   }

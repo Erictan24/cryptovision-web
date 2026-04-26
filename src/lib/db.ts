@@ -93,15 +93,27 @@ export async function getOrdersByUserDb(userId: number) {
   return await sql`SELECT * FROM orders WHERE user_id = ${userId} ORDER BY created_at DESC`;
 }
 
+/** Durasi langganan (days) berdasarkan plan key */
+function getPlanDurationDays(plan: string): number {
+  switch (plan) {
+    case "m1": return 30;
+    case "m3": return 90;
+    case "y1": return 365;
+    case "lt": return 36500;  // 100 tahun = lifetime
+    default:   return 30;
+  }
+}
+
 /** Set subscription (create new, expire old) */
 export async function setSubscriptionDb(userId: number, plan: string, planName: string) {
   const sql = getDb();
+  const days = getPlanDurationDays(plan);
   // Expire old subscriptions
   await sql`UPDATE subscriptions SET status = 'expired' WHERE user_id = ${userId} AND status = 'active'`;
-  // Create new
+  // Create new dengan durasi sesuai plan
   await sql`
     INSERT INTO subscriptions (user_id, plan, plan_name, expires_at)
-    VALUES (${userId}, ${plan}, ${planName}, NOW() + INTERVAL '30 days')
+    VALUES (${userId}, ${plan}, ${planName}, NOW() + (${days} || ' days')::INTERVAL)
   `;
 }
 

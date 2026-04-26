@@ -57,6 +57,17 @@ export default function Pricing() {
       accent: false,
       href: "/checkout?plan=y1",
     },
+    {
+      key: "lt",
+      name: p.lt_name,
+      price: usd ? p.lt_price_usd : p.lt_price_idr,
+      subtitle: p.once,
+      features: [p.lt_f1, p.lt_f2, p.lt_f3, p.lt_f4],
+      cta: p.cta,
+      badge: null,
+      accent: false,
+      href: "/checkout?plan=lt",
+    },
   ];
 
   return (
@@ -94,7 +105,7 @@ export default function Pricing() {
         </motion.div>
 
         {/* Cards */}
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
           {plans.map((plan, i) => (
             <motion.div
               key={plan.key}

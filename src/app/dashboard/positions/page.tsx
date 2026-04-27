@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Briefcase, TrendingUp, TrendingDown, CheckCircle2, Shield, Zap } from "lucide-react";
 import { useLang } from "@/components/LanguageProvider";
 
@@ -60,58 +60,29 @@ function timeAgo(iso: string, locale: "id" | "en"): string {
 }
 
 // ─────────────────────────────────────────────────
-// Live price hook (Binance WebSocket)
+// Live price hook (Bitunix REST polling — match exchange yang ditrading)
 // ─────────────────────────────────────────────────
-function useLivePrices(symbols: string[]): Map<string, number> {
+function useBitunixPrices(): Map<string, number> {
   const [prices, setPrices] = useState<Map<string, number>>(() => new Map());
-  const key = symbols.slice().sort().join(",");
 
   useEffect(() => {
-    if (!symbols.length) return;
-    const streams = symbols.map((s) => `${s.toLowerCase()}usdt@miniTicker`).join("/");
-    const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
-
-    let ws: WebSocket | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let closed = false;
-
-    const connect = () => {
+    let cancelled = false;
+    const load = async () => {
       try {
-        ws = new WebSocket(url);
-      } catch {
-        reconnectTimer = setTimeout(connect, 5000);
-        return;
-      }
-      ws.onmessage = (ev) => {
-        try {
-          const msg = JSON.parse(ev.data);
-          const d = msg.data;
-          if (!d || !d.s) return;
-          const symbol = String(d.s).replace(/USDT$/, "");
-          const price = parseFloat(d.c);
-          if (!isFinite(price)) return;
-          setPrices((prev) => {
-            const next = new Map(prev);
-            next.set(symbol, price);
-            return next;
-          });
-        } catch { /* ignore */ }
-      };
-      ws.onclose = () => {
-        if (closed) return;
-        reconnectTimer = setTimeout(connect, 3000);
-      };
-      ws.onerror = () => { try { ws?.close(); } catch { /* ignore */ } };
+        const r = await fetch(`/api/bitunix-prices?t=${Date.now()}`, { cache: "no-store" });
+        const d = await r.json();
+        if (cancelled || !d.ok || !d.prices) return;
+        const next = new Map<string, number>();
+        for (const [sym, info] of Object.entries(d.prices as Record<string, { price: number }>)) {
+          if (typeof info?.price === "number") next.set(sym, info.price);
+        }
+        setPrices(next);
+      } catch { /* ignore */ }
     };
-
-    connect();
-    return () => {
-      closed = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      try { ws?.close(); } catch { /* ignore */ }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+    load();
+    const id = setInterval(load, 3_000); // poll 3 detik
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
 
   return prices;
 }
@@ -189,11 +160,8 @@ export default function PositionsPage() {
     return () => clearInterval(id);
   }, []);
 
-  const symbols = useMemo(
-    () => Array.from(new Set((positions ?? []).map((p) => p.symbol))),
-    [positions],
-  );
-  const live = useLivePrices(symbols);
+  // Bitunix prices match exact exchange position — pakai ini bukan Binance
+  const live = useBitunixPrices();
 
   return (
     <div>
@@ -210,7 +178,7 @@ export default function PositionsPage() {
           LIVE
         </span>
         <span className="text-xs text-[var(--color-text-muted)]">
-          {locale === "id" ? "— harga update real-time, leverage 10x" : "— price updates real-time, 10x leverage"}
+          {locale === "id" ? "— harga Bitunix (match exchange), leverage 10x" : "— Bitunix prices (match exchange), 10x leverage"}
         </span>
       </div>
 

@@ -108,15 +108,27 @@ function calcMetrics(p: Position, currentPrice: number | null) {
   const tp1   = toNum(p.tp1);
   const tp2   = toNum(p.tp2);
   const qty   = toNum(p.qty);
+  const lev   = toNum(p.leverage) ?? 10; // default 10x kalau bot belum push leverage
 
   if (!entry) return null;
 
   const isLong = p.direction.toUpperCase().includes("LONG") || p.direction.toUpperCase() === "BUY";
 
-  // PnL — leverage tidak ngubah risk per trade (risk = qty × |entry - SL|)
-  // PnL$ = qty × price diff (langsung match wallet user di Bitunix)
-  // PnL R = pnl_usd / risk_usd (multiple of risk yang di-set saat entry)
+  // RR — pakai value dari API kalau ada, kalau null hitung dari entry/sl/tp2
+  let rr = toNum(p.rr);
+  if (rr === null && sl !== null && tp2 !== null) {
+    const reward = isLong ? (tp2 - entry) : (entry - tp2);
+    const risk   = isLong ? (entry - sl)  : (sl - entry);
+    if (risk > 0 && reward > 0) rr = reward / risk;
+  }
+
+  // PnL & ROI calculations
+  // - pnl_pct (spot): % change harga vs entry
+  // - roi_pct: pnl_pct × leverage (apa yang user lihat di exchange)
+  // - pnl_usd: qty × price diff (match wallet aktual)
+  // - pnl_r: multiple of risk (trader-meaningful)
   let pnlPct: number | null = null;
+  let roiPct: number | null = null;
   let pnlUsd: number | null = null;
   let pnlR:   number | null = null;
   let riskUsd: number | null = null;
@@ -127,6 +139,7 @@ function calcMetrics(p: Position, currentPrice: number | null) {
     pnlPct = isLong
       ? ((currentPrice - entry) / entry) * 100
       : ((entry - currentPrice) / entry) * 100;
+    roiPct = pnlPct * lev;
     if (qty !== null && qty > 0) {
       pnlUsd = isLong
         ? (currentPrice - entry) * qty
@@ -156,10 +169,10 @@ function calcMetrics(p: Position, currentPrice: number | null) {
     : null;
 
   return {
-    entry, sl, tp1, tp2, qty,
+    entry, sl, tp1, tp2, qty, rr, leverage: lev,
     isLong,
     currentPrice,
-    pnlPct, pnlUsd, pnlR, riskUsd,
+    pnlPct, roiPct, pnlUsd, pnlR, riskUsd,
     tp1Progress, tp2Progress,
     slDistPct,
   };
@@ -326,13 +339,13 @@ function PositionCard({ p, currentPrice, locale }: {
             )}
           </div>
 
-          {m.pnlUsd !== null ? (
+          {m.roiPct !== null ? (
             <div className="text-right">
               <div className="text-[9px] uppercase tracking-wider text-[var(--color-text-muted)]">
-                PnL
+                ROI ({m.leverage}x)
               </div>
               <div className={`font-mono text-2xl font-bold tabular-nums ${pnlColor}`}>
-                {fmtUsd(m.pnlUsd)}
+                {fmtPct(m.roiPct)}
               </div>
               {m.pnlR !== null && (
                 <div className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${pnlBg} ${pnlColor}`}>
@@ -391,7 +404,7 @@ function PositionCard({ p, currentPrice, locale }: {
       {/* Footer */}
       <div className="relative mt-4 flex items-center justify-between border-t border-[var(--color-border)]/60 pt-3 text-[11px] text-[var(--color-text-muted)]">
         <div className="flex items-center gap-3">
-          <span>RR <span className="font-bold text-[var(--color-text-secondary)]">{fmtRr(p.rr)}</span></span>
+          <span>RR <span className="font-bold text-[var(--color-text-secondary)]">{m.rr !== null ? `1:${m.rr.toFixed(2)}` : "—"}</span></span>
           {p.qty !== null && p.qty !== undefined && (
             <span>Qty <span className="font-bold text-[var(--color-text-secondary)]">{String(p.qty)}</span></span>
           )}

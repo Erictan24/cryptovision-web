@@ -224,7 +224,7 @@ export async function pushPositionDb(p: {
 }
 
 export async function updatePositionStateDb(symbol: string, opts: {
-  tp1_hit?: boolean; bep_active?: boolean; sl?: number;
+  tp1_hit?: boolean; bep_active?: boolean; sl?: number; rr?: number; leverage?: number;
 }) {
   const sql = getDb();
   if (opts.sl !== undefined) {
@@ -235,6 +235,12 @@ export async function updatePositionStateDb(symbol: string, opts: {
   }
   if (opts.bep_active !== undefined) {
     await sql`UPDATE positions SET bep_active = ${opts.bep_active} WHERE symbol = ${symbol}`;
+  }
+  if (opts.rr !== undefined) {
+    await sql`UPDATE positions SET rr = ${opts.rr} WHERE symbol = ${symbol}`;
+  }
+  if (opts.leverage !== undefined) {
+    await sql`UPDATE positions SET leverage = ${opts.leverage} WHERE symbol = ${symbol}`;
   }
 }
 

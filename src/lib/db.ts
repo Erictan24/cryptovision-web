@@ -435,5 +435,5 @@ export async function getActiveSubscriberIdsDb(): Promise<number[]> {
     SELECT DISTINCT user_id FROM subscriptions
     WHERE status = 'active' AND expires_at > NOW()
   `;
-  return rows.map((r: { user_id: number }) => Number(r.user_id));
+  return rows.map((r) => Number((r as { user_id: number }).user_id));
 }

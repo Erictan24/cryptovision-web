@@ -24,8 +24,6 @@ type Position = {
   opened_at: string;
 };
 
-const DEFAULT_LEVERAGE = 10; // fallback kalau leverage tidak di-push dari bot
-
 // ─────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────
@@ -50,6 +48,19 @@ function fmtRr(n: unknown): string {
 function fmtPct(n: number, withSign = true): string {
   const sign = withSign && n >= 0 ? "+" : "";
   return `${sign}${n.toFixed(2)}%`;
+}
+
+function fmtUsd(n: number): string {
+  const sign = n >= 0 ? "+" : "−";
+  const abs = Math.abs(n);
+  if (abs >= 1) return `${sign}$${abs.toFixed(2)}`;
+  if (abs >= 0.01) return `${sign}$${abs.toFixed(3)}`;
+  return `${sign}$${abs.toFixed(4)}`;
+}
+
+function fmtR(n: number): string {
+  const sign = n >= 0 ? "+" : "";
+  return `${sign}${n.toFixed(2)}R`;
 }
 
 function timeAgo(iso: string, locale: "id" | "en"): string {
@@ -96,20 +107,34 @@ function calcMetrics(p: Position, currentPrice: number | null) {
   const sl    = toNum(p.sl);
   const tp1   = toNum(p.tp1);
   const tp2   = toNum(p.tp2);
+  const qty   = toNum(p.qty);
 
   if (!entry) return null;
 
   const isLong = p.direction.toUpperCase().includes("LONG") || p.direction.toUpperCase() === "BUY";
 
-  // PnL % (spot, sebelum leverage)
-  const lev = toNum(p.leverage) ?? DEFAULT_LEVERAGE;
+  // PnL — leverage tidak ngubah risk per trade (risk = qty × |entry - SL|)
+  // PnL$ = qty × price diff (langsung match wallet user di Bitunix)
+  // PnL R = pnl_usd / risk_usd (multiple of risk yang di-set saat entry)
   let pnlPct: number | null = null;
-  let roiPct: number | null = null;
+  let pnlUsd: number | null = null;
+  let pnlR:   number | null = null;
+  let riskUsd: number | null = null;
+  if (sl !== null && qty !== null && qty > 0) {
+    riskUsd = Math.abs(entry - sl) * qty;
+  }
   if (currentPrice !== null) {
     pnlPct = isLong
       ? ((currentPrice - entry) / entry) * 100
       : ((entry - currentPrice) / entry) * 100;
-    roiPct = pnlPct * lev;
+    if (qty !== null && qty > 0) {
+      pnlUsd = isLong
+        ? (currentPrice - entry) * qty
+        : (entry - currentPrice) * qty;
+      if (riskUsd && riskUsd > 0) {
+        pnlR = pnlUsd / riskUsd;
+      }
+    }
   }
 
   // Progress to TP1/TP2 — 0 to 1 scale
@@ -125,16 +150,16 @@ function calcMetrics(p: Position, currentPrice: number | null) {
   const tp1Progress = tp1 ? progressTo(tp1) : 0;
   const tp2Progress = tp2 ? progressTo(tp2) : 0;
 
-  // Distance to SL (negative if past SL)
+  // Distance to SL (% of entry price)
   const slDistPct = sl !== null && currentPrice !== null
     ? Math.abs(sl - currentPrice) / entry * 100
     : null;
 
   return {
-    entry, sl, tp1, tp2,
+    entry, sl, tp1, tp2, qty,
     isLong,
     currentPrice,
-    pnlPct, roiPct, leverage: lev,
+    pnlPct, pnlUsd, pnlR, riskUsd,
     tp1Progress, tp2Progress,
     slDistPct,
   };
@@ -285,7 +310,7 @@ function PositionCard({ p, currentPrice, locale }: {
 
       {/* Live price + PnL hero */}
       <div className="relative mt-5 rounded-xl bg-[var(--color-bg-primary)]/50 p-4 ring-1 ring-inset ring-white/5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-[var(--color-text-muted)]">
               <Zap size={10} className="text-[var(--color-accent)]" />
@@ -294,27 +319,47 @@ function PositionCard({ p, currentPrice, locale }: {
             <div className="mt-0.5 font-mono text-2xl font-bold tabular-nums">
               {currentPrice !== null ? fmtPrice(currentPrice) : "—"}
             </div>
-          </div>
-
-          {m.pnlPct !== null && m.roiPct !== null ? (
-            <div className="text-right">
-              <div className="text-[9px] uppercase tracking-wider text-[var(--color-text-muted)]">
-                ROI ({m.leverage}x)
-              </div>
-              <div className={`text-2xl font-bold tabular-nums ${pnlColor}`}>
-                {fmtPct(m.roiPct)}
-              </div>
-              <div className={`mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${pnlBg} ${pnlColor}`}>
-                {pnlIsUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+            {m.pnlPct !== null && (
+              <div className={`mt-1 text-[10px] font-semibold ${pnlColor}`}>
                 {fmtPct(m.pnlPct)} {locale === "id" ? "spot" : "spot"}
               </div>
+            )}
+          </div>
+
+          {m.pnlUsd !== null ? (
+            <div className="text-right">
+              <div className="text-[9px] uppercase tracking-wider text-[var(--color-text-muted)]">
+                PnL
+              </div>
+              <div className={`font-mono text-2xl font-bold tabular-nums ${pnlColor}`}>
+                {fmtUsd(m.pnlUsd)}
+              </div>
+              {m.pnlR !== null && (
+                <div className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${pnlBg} ${pnlColor}`}>
+                  {pnlIsUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                  {fmtR(m.pnlR)}
+                </div>
+              )}
             </div>
-          ) : (
+          ) : currentPrice === null ? (
             <div className="text-right text-[10px] text-[var(--color-text-muted)]">
               {locale === "id" ? "Live price tidak tersedia" : "Live price unavailable"}
             </div>
+          ) : (
+            <div className="text-right text-[10px] text-[var(--color-text-muted)]">
+              {locale === "id" ? "Qty tidak diketahui" : "Qty unknown"}
+            </div>
           )}
         </div>
+
+        {/* Risk info di bawah */}
+        {m.riskUsd !== null && (
+          <div className="mt-3 border-t border-[var(--color-border)]/40 pt-2 text-[10px] text-[var(--color-text-muted)]">
+            <span>{locale === "id" ? "Risk:" : "Risk:"} </span>
+            <span className="font-bold text-[var(--color-text-secondary)]">{fmtUsd(m.riskUsd).replace("+", "")}</span>
+            <span className="ml-1">({locale === "id" ? "max loss kalau SL kena" : "max loss if SL hit"})</span>
+          </div>
+        )}
       </div>
 
       {/* Progress bars */}

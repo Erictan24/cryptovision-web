@@ -13,6 +13,8 @@ export default function Navbar() {
   const links = [
     { href: "#features", label: t.nav.features },
     { href: "#pricing", label: t.nav.pricing },
+    { href: "/proof", label: locale === "id" ? "Bukti Live" : "Live Proof" },
+    { href: "/glossary", label: locale === "id" ? "Glossary" : "Glossary" },
     { href: "#faq", label: t.nav.faq },
   ];
 

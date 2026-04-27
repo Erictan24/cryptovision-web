@@ -427,3 +427,13 @@ export async function getSubscriptionDb(userId: number) {
   `;
   return rows[0] || null;
 }
+
+/** Get list semua telegram_id user yang punya subscription aktif. */
+export async function getActiveSubscriberIdsDb(): Promise<number[]> {
+  const sql = getDb();
+  const rows = await sql`
+    SELECT DISTINCT user_id FROM subscriptions
+    WHERE status = 'active' AND expires_at > NOW()
+  `;
+  return rows.map((r: { user_id: number }) => Number(r.user_id));
+}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 600; // 10 menit cache (news update jarang)
+export const revalidate = 600; // 10 menit cache
 
 type NewsItem = {
   id: string;
@@ -15,22 +15,22 @@ type NewsItem = {
   categories: string[];
 };
 
-type CryptoCompareItem = {
-  id: string;
+type CoinGeckoNews = {
+  id: number;
   title: string;
-  body: string;
-  imageurl: string;
+  description: string;
   url: string;
-  published_on: number;
-  categories: string;
-  source: string;
-  source_info?: { name?: string; img?: string };
+  author?: string;
+  news_site?: string;
+  thumb_2x?: string;
+  created_at?: number;
+  crawled_at?: number;
 };
 
 export async function GET() {
   try {
     const r = await fetch(
-      "https://min-api.cryptocompare.com/data/v2/news/?lang=EN&sortOrder=latest",
+      "https://api.coingecko.com/api/v3/news?page=1",
       {
         headers: { "User-Agent": "Mozilla/5.0" },
         next: { revalidate: 600 },
@@ -40,18 +40,18 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: "fetch_failed" }, { status: 502 });
     }
     const data = await r.json();
-    const raw: CryptoCompareItem[] = Array.isArray(data?.Data) ? data.Data : [];
+    const raw: CoinGeckoNews[] = Array.isArray(data?.data) ? data.data : [];
 
     const items: NewsItem[] = raw.slice(0, 24).map((n) => ({
-      id: n.id,
-      title: n.title,
-      body: (n.body || "").slice(0, 280),
-      image: n.imageurl || "",
+      id: String(n.id),
+      title: n.title || "",
+      body: (n.description || "").slice(0, 280),
+      image: n.thumb_2x || "",
       url: n.url,
-      source: n.source_info?.name || n.source || "Unknown",
-      source_img: n.source_info?.img || "",
-      published_at: n.published_on,
-      categories: (n.categories || "").split("|").filter(Boolean).slice(0, 3),
+      source: n.news_site || n.author || "Unknown",
+      source_img: "",
+      published_at: n.created_at || n.crawled_at || Math.floor(Date.now() / 1000),
+      categories: [],
     }));
 
     return NextResponse.json({

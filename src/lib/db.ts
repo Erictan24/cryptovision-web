@@ -88,12 +88,15 @@ export async function initDb() {
       tp2 NUMERIC,
       rr NUMERIC,
       qty NUMERIC,
+      leverage INTEGER,
       reasons JSONB,
       tp1_hit BOOLEAN DEFAULT false,
       bep_active BOOLEAN DEFAULT false,
       opened_at TIMESTAMP DEFAULT NOW()
     )
   `;
+  // Migrate: tambah kolom leverage kalau tabel sudah ada dari versi lama
+  await sql`ALTER TABLE positions ADD COLUMN IF NOT EXISTS leverage INTEGER`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_positions_symbol ON positions(symbol)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_positions_opened ON positions(opened_at DESC)`;
 
@@ -196,15 +199,15 @@ export async function updateSignalStatusDb(symbol: string, status: string) {
 export async function pushPositionDb(p: {
   symbol: string; direction: string; strategy?: string; quality?: string;
   entry?: number; sl?: number; tp1?: number; tp2?: number; rr?: number;
-  qty?: number; reasons?: string[]; signal_id?: number;
+  qty?: number; leverage?: number; reasons?: string[]; signal_id?: number;
 }) {
   const sql = getDb();
   // Upsert by symbol — bot bisa update kalau posisi yang sama (e.g. tp1_hit, bep_active)
   await sql`
-    INSERT INTO positions (symbol, direction, strategy, quality, entry, sl, tp1, tp2, rr, qty, reasons, signal_id)
+    INSERT INTO positions (symbol, direction, strategy, quality, entry, sl, tp1, tp2, rr, qty, leverage, reasons, signal_id)
     VALUES (${p.symbol}, ${p.direction}, ${p.strategy || 'swing'}, ${p.quality || null},
             ${p.entry || null}, ${p.sl || null}, ${p.tp1 || null}, ${p.tp2 || null},
-            ${p.rr || null}, ${p.qty || null},
+            ${p.rr || null}, ${p.qty || null}, ${p.leverage || null},
             ${JSON.stringify(p.reasons || [])}, ${p.signal_id || null})
     ON CONFLICT (symbol) DO UPDATE SET
       direction = EXCLUDED.direction,
@@ -215,6 +218,7 @@ export async function pushPositionDb(p: {
       tp2 = EXCLUDED.tp2,
       rr = EXCLUDED.rr,
       qty = EXCLUDED.qty,
+      leverage = EXCLUDED.leverage,
       opened_at = NOW()
   `;
 }

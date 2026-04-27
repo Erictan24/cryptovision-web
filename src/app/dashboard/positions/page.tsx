@@ -17,13 +17,14 @@ type Position = {
   tp2: number | string | null;
   rr: number | string | null;
   qty: number | string | null;
+  leverage: number | string | null;
   reasons: string[] | null;
   tp1_hit: boolean;
   bep_active: boolean;
   opened_at: string;
 };
 
-const LEVERAGE = 10;
+const DEFAULT_LEVERAGE = 10; // fallback kalau leverage tidak di-push dari bot
 
 // ─────────────────────────────────────────────────
 // Helpers
@@ -101,13 +102,14 @@ function calcMetrics(p: Position, currentPrice: number | null) {
   const isLong = p.direction.toUpperCase().includes("LONG") || p.direction.toUpperCase() === "BUY";
 
   // PnL % (spot, sebelum leverage)
+  const lev = toNum(p.leverage) ?? DEFAULT_LEVERAGE;
   let pnlPct: number | null = null;
   let roiPct: number | null = null;
   if (currentPrice !== null) {
     pnlPct = isLong
       ? ((currentPrice - entry) / entry) * 100
       : ((entry - currentPrice) / entry) * 100;
-    roiPct = pnlPct * LEVERAGE;
+    roiPct = pnlPct * lev;
   }
 
   // Progress to TP1/TP2 — 0 to 1 scale
@@ -132,7 +134,7 @@ function calcMetrics(p: Position, currentPrice: number | null) {
     entry, sl, tp1, tp2,
     isLong,
     currentPrice,
-    pnlPct, roiPct,
+    pnlPct, roiPct, leverage: lev,
     tp1Progress, tp2Progress,
     slDistPct,
   };
@@ -178,7 +180,7 @@ export default function PositionsPage() {
           LIVE
         </span>
         <span className="text-xs text-[var(--color-text-muted)]">
-          {locale === "id" ? "— harga Bitunix (match exchange), leverage 10x" : "— Bitunix prices (match exchange), 10x leverage"}
+          {locale === "id" ? "— harga Bitunix (match exchange)" : "— Bitunix prices (match exchange)"}
         </span>
       </div>
 
@@ -297,7 +299,7 @@ function PositionCard({ p, currentPrice, locale }: {
           {m.pnlPct !== null && m.roiPct !== null ? (
             <div className="text-right">
               <div className="text-[9px] uppercase tracking-wider text-[var(--color-text-muted)]">
-                ROI ({LEVERAGE}x)
+                ROI ({m.leverage}x)
               </div>
               <div className={`text-2xl font-bold tabular-nums ${pnlColor}`}>
                 {fmtPct(m.roiPct)}

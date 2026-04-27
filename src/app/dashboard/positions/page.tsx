@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Briefcase, TrendingUp, TrendingDown, CheckCircle2, Shield } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Briefcase, TrendingUp, TrendingDown, CheckCircle2, Shield, Zap } from "lucide-react";
 import { useLang } from "@/components/LanguageProvider";
 
 type Position = {
@@ -23,6 +23,11 @@ type Position = {
   opened_at: string;
 };
 
+const LEVERAGE = 10;
+
+// ─────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────
 function toNum(n: unknown): number | null {
   if (n === null || n === undefined || n === "") return null;
   const num = typeof n === "number" ? n : parseFloat(String(n));
@@ -38,7 +43,12 @@ function fmtPrice(n: unknown): string {
 
 function fmtRr(n: unknown): string {
   const num = toNum(n);
-  return num === null ? "—" : num.toFixed(2);
+  return num === null ? "—" : `1:${num.toFixed(2)}`;
+}
+
+function fmtPct(n: number, withSign = true): string {
+  const sign = withSign && n >= 0 ? "+" : "";
+  return `${sign}${n.toFixed(2)}%`;
 }
 
 function timeAgo(iso: string, locale: "id" | "en"): string {
@@ -49,6 +59,117 @@ function timeAgo(iso: string, locale: "id" | "en"): string {
   return locale === "id" ? `${Math.floor(sec / 86400)}h lalu` : `${Math.floor(sec / 86400)}d ago`;
 }
 
+// ─────────────────────────────────────────────────
+// Live price hook (Binance WebSocket)
+// ─────────────────────────────────────────────────
+function useLivePrices(symbols: string[]): Map<string, number> {
+  const [prices, setPrices] = useState<Map<string, number>>(() => new Map());
+  const key = symbols.slice().sort().join(",");
+
+  useEffect(() => {
+    if (!symbols.length) return;
+    const streams = symbols.map((s) => `${s.toLowerCase()}usdt@miniTicker`).join("/");
+    const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
+
+    let ws: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let closed = false;
+
+    const connect = () => {
+      try {
+        ws = new WebSocket(url);
+      } catch {
+        reconnectTimer = setTimeout(connect, 5000);
+        return;
+      }
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          const d = msg.data;
+          if (!d || !d.s) return;
+          const symbol = String(d.s).replace(/USDT$/, "");
+          const price = parseFloat(d.c);
+          if (!isFinite(price)) return;
+          setPrices((prev) => {
+            const next = new Map(prev);
+            next.set(symbol, price);
+            return next;
+          });
+        } catch { /* ignore */ }
+      };
+      ws.onclose = () => {
+        if (closed) return;
+        reconnectTimer = setTimeout(connect, 3000);
+      };
+      ws.onerror = () => { try { ws?.close(); } catch { /* ignore */ } };
+    };
+
+    connect();
+    return () => {
+      closed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      try { ws?.close(); } catch { /* ignore */ }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  return prices;
+}
+
+// ─────────────────────────────────────────────────
+// Position metrics calc
+// ─────────────────────────────────────────────────
+function calcMetrics(p: Position, currentPrice: number | null) {
+  const entry = toNum(p.entry);
+  const sl    = toNum(p.sl);
+  const tp1   = toNum(p.tp1);
+  const tp2   = toNum(p.tp2);
+
+  if (!entry) return null;
+
+  const isLong = p.direction.toUpperCase().includes("LONG") || p.direction.toUpperCase() === "BUY";
+
+  // PnL % (spot, sebelum leverage)
+  let pnlPct: number | null = null;
+  let roiPct: number | null = null;
+  if (currentPrice !== null) {
+    pnlPct = isLong
+      ? ((currentPrice - entry) / entry) * 100
+      : ((entry - currentPrice) / entry) * 100;
+    roiPct = pnlPct * LEVERAGE;
+  }
+
+  // Progress to TP1/TP2 — 0 to 1 scale
+  const progressTo = (target: number | null): number => {
+    if (target === null || currentPrice === null) return 0;
+    const totalDist = Math.abs(target - entry);
+    if (totalDist === 0) return 0;
+    const movedDist = isLong
+      ? Math.max(0, currentPrice - entry)
+      : Math.max(0, entry - currentPrice);
+    return Math.min(1, movedDist / totalDist);
+  };
+  const tp1Progress = tp1 ? progressTo(tp1) : 0;
+  const tp2Progress = tp2 ? progressTo(tp2) : 0;
+
+  // Distance to SL (negative if past SL)
+  const slDistPct = sl !== null && currentPrice !== null
+    ? Math.abs(sl - currentPrice) / entry * 100
+    : null;
+
+  return {
+    entry, sl, tp1, tp2,
+    isLong,
+    currentPrice,
+    pnlPct, roiPct,
+    tp1Progress, tp2Progress,
+    slDistPct,
+  };
+}
+
+// ─────────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────────
 export default function PositionsPage() {
   const { locale } = useLang();
   const [positions, setPositions] = useState<Position[] | null>(null);
@@ -68,134 +189,278 @@ export default function PositionsPage() {
     return () => clearInterval(id);
   }, []);
 
+  const symbols = useMemo(
+    () => Array.from(new Set((positions ?? []).map((p) => p.symbol))),
+    [positions],
+  );
+  const live = useLivePrices(symbols);
+
   return (
     <div>
-      <div className="mb-4 flex items-center gap-2">
-        <Briefcase size={18} className="text-[var(--color-accent)]" />
-        <h2 className="text-lg font-bold">
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <Briefcase size={20} className="text-[var(--color-accent)]" />
+        <h2 className="text-xl font-bold">
           {locale === "id" ? "Posisi Terbuka" : "Open Positions"}
         </h2>
+        <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-[var(--color-success)]/15 px-2 py-0.5 text-[9px] font-bold text-[var(--color-success)]">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--color-success)] opacity-75"></span>
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-success)]"></span>
+          </span>
+          LIVE
+        </span>
         <span className="text-xs text-[var(--color-text-muted)]">
-          {locale === "id" ? "— refresh tiap 15 detik" : "— refresh every 15s"}
+          {locale === "id" ? "— harga update real-time, leverage 10x" : "— price updates real-time, 10x leverage"}
         </span>
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
-          <p className="text-sm text-[var(--color-text-muted)]">
-            {locale === "id" ? "Gagal memuat posisi." : "Failed to load positions."}
-          </p>
-        </div>
+        <ErrorState locale={locale} />
       )}
 
       {!error && positions === null && (
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
-          <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
-            <div className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--color-accent)] border-t-transparent" />
-            {locale === "id" ? "Memuat posisi..." : "Loading positions..."}
-          </div>
-        </div>
+        <LoadingState locale={locale} />
       )}
 
       {!error && positions !== null && positions.length === 0 && (
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-8 text-center">
-          <Briefcase size={32} className="mx-auto mb-3 text-[var(--color-text-muted)]" />
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            {locale === "id" ? "Belum ada posisi terbuka." : "No open positions."}
-          </p>
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-            {locale === "id"
-              ? "Posisi muncul di sini saat limit order ter-fill dan trade lagi running."
-              : "Positions appear here when limit orders fill and trades are running."}
-          </p>
-        </div>
+        <EmptyState locale={locale} />
       )}
 
       {!error && positions && positions.length > 0 && (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {positions.map((p) => {
-            const isLong = p.direction.toUpperCase().includes("LONG") || p.direction.toUpperCase() === "BUY";
-            const dirIcon = isLong ? TrendingUp : TrendingDown;
-            const DirIcon = dirIcon;
-            const dirColor = isLong ? "text-[var(--color-success)]" : "text-[var(--color-danger)]";
-            const dirBg    = isLong ? "bg-[var(--color-success)]/10" : "bg-[var(--color-danger)]/10";
-
-            return (
-              <div
-                key={p.id}
-                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4 transition hover:border-[var(--color-accent)]/50"
-              >
-                {/* Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${dirBg}`}>
-                      <DirIcon size={16} className={dirColor} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold">{p.symbol}</span>
-                        <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${dirBg} ${dirColor}`}>
-                          {p.direction}
-                        </span>
-                      </div>
-                      <div className="text-[10px] uppercase text-[var(--color-text-muted)]">
-                        {p.strategy} · {timeAgo(p.opened_at, locale)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stage badges */}
-                  <div className="flex flex-col items-end gap-1">
-                    {p.tp1_hit && (
-                      <span className="flex items-center gap-1 rounded-full bg-[var(--color-success)]/15 px-2 py-0.5 text-[9px] font-bold text-[var(--color-success)]">
-                        <CheckCircle2 size={9} /> TP1
-                      </span>
-                    )}
-                    {p.bep_active && (
-                      <span className="flex items-center gap-1 rounded-full bg-[var(--color-accent)]/15 px-2 py-0.5 text-[9px] font-bold text-[var(--color-accent-light)]">
-                        <Shield size={9} /> BEP
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Levels grid */}
-                <div className="mt-4 grid grid-cols-4 gap-2 text-xs">
-                  <div>
-                    <div className="text-[9px] uppercase text-[var(--color-text-muted)]">Entry</div>
-                    <div className="font-mono font-semibold">{fmtPrice(p.entry)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[9px] uppercase text-[var(--color-text-muted)]">SL</div>
-                    <div className="font-mono font-semibold text-[var(--color-danger)]">{fmtPrice(p.sl)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[9px] uppercase text-[var(--color-text-muted)]">TP1</div>
-                    <div className="font-mono font-semibold text-[var(--color-success)]">{fmtPrice(p.tp1)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[9px] uppercase text-[var(--color-text-muted)]">TP2</div>
-                    <div className="font-mono font-semibold text-[var(--color-success)]">{fmtPrice(p.tp2)}</div>
-                  </div>
-                </div>
-
-                {/* Footer: RR + qty */}
-                <div className="mt-3 flex items-center justify-between border-t border-[var(--color-border)] pt-3 text-[11px] text-[var(--color-text-muted)]">
-                  <span>RR <span className="font-bold text-[var(--color-text-secondary)]">{fmtRr(p.rr)}</span></span>
-                  {p.qty !== null && p.qty !== undefined && (
-                    <span>Qty <span className="font-bold text-[var(--color-text-secondary)]">{p.qty}</span></span>
-                  )}
-                  {p.quality && (
-                    <span className="rounded bg-[var(--color-bg-primary)] px-1.5 py-0.5 font-semibold uppercase">
-                      {p.quality}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="grid gap-4 lg:grid-cols-2">
+          {positions.map((p) => (
+            <PositionCard
+              key={p.id}
+              p={p}
+              currentPrice={live.get(p.symbol) ?? null}
+              locale={locale}
+            />
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────
+// Card component
+// ─────────────────────────────────────────────────
+function PositionCard({ p, currentPrice, locale }: {
+  p: Position;
+  currentPrice: number | null;
+  locale: "id" | "en";
+}) {
+  const m = calcMetrics(p, currentPrice);
+  if (!m) return null;
+
+  const dirColor = m.isLong ? "text-[var(--color-success)]" : "text-[var(--color-danger)]";
+  const dirGrad  = m.isLong
+    ? "from-[var(--color-success)]/10 via-transparent to-transparent"
+    : "from-[var(--color-danger)]/10 via-transparent to-transparent";
+  const dirBg = m.isLong ? "bg-[var(--color-success)]/15" : "bg-[var(--color-danger)]/15";
+  const DirIcon = m.isLong ? TrendingUp : TrendingDown;
+
+  const pnlIsUp = (m.pnlPct ?? 0) >= 0;
+  const pnlColor = pnlIsUp ? "text-[var(--color-success)]" : "text-[var(--color-danger)]";
+  const pnlBg    = pnlIsUp ? "bg-[var(--color-success)]/10" : "bg-[var(--color-danger)]/10";
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-gradient-to-br ${dirGrad} bg-[var(--color-bg-card)] p-5 transition hover:border-[var(--color-accent)]/40 hover:shadow-lg hover:shadow-[var(--color-accent)]/5`}>
+      {/* Subtle background glow */}
+      <div className={`absolute -top-12 -right-12 h-32 w-32 rounded-full ${dirBg} blur-3xl opacity-50 pointer-events-none`} />
+
+      {/* Header */}
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${dirBg} ring-1 ring-inset ring-white/5`}>
+            <DirIcon size={22} className={dirColor} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-bold tracking-tight">{p.symbol}</h3>
+              <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${dirBg} ${dirColor}`}>
+                {p.direction}
+              </span>
+            </div>
+            <div className="mt-0.5 flex items-center gap-2 text-[10px] text-[var(--color-text-muted)]">
+              <span className="font-semibold uppercase tracking-wider">{p.strategy}</span>
+              <span>·</span>
+              <span>{timeAgo(p.opened_at, locale)}</span>
+              {p.quality && (
+                <>
+                  <span>·</span>
+                  <span className="rounded bg-[var(--color-bg-primary)] px-1.5 py-0.5 font-bold text-[var(--color-text-secondary)]">
+                    {p.quality}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Stage badges */}
+        <div className="flex flex-col items-end gap-1.5">
+          {p.tp1_hit && (
+            <span className="flex items-center gap-1 rounded-full bg-[var(--color-success)]/15 px-2 py-0.5 text-[9px] font-bold text-[var(--color-success)]">
+              <CheckCircle2 size={10} /> TP1
+            </span>
+          )}
+          {p.bep_active && (
+            <span className="flex items-center gap-1 rounded-full bg-[var(--color-accent)]/15 px-2 py-0.5 text-[9px] font-bold text-[var(--color-accent-light)]">
+              <Shield size={10} /> BEP LOCK
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Live price + PnL hero */}
+      <div className="relative mt-5 rounded-xl bg-[var(--color-bg-primary)]/50 p-4 ring-1 ring-inset ring-white/5">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-[var(--color-text-muted)]">
+              <Zap size={10} className="text-[var(--color-accent)]" />
+              {locale === "id" ? "Harga Live" : "Live Price"}
+            </div>
+            <div className="mt-0.5 font-mono text-2xl font-bold tabular-nums">
+              {currentPrice !== null ? fmtPrice(currentPrice) : "—"}
+            </div>
+          </div>
+
+          {m.pnlPct !== null && m.roiPct !== null ? (
+            <div className="text-right">
+              <div className="text-[9px] uppercase tracking-wider text-[var(--color-text-muted)]">
+                ROI ({LEVERAGE}x)
+              </div>
+              <div className={`text-2xl font-bold tabular-nums ${pnlColor}`}>
+                {fmtPct(m.roiPct)}
+              </div>
+              <div className={`mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${pnlBg} ${pnlColor}`}>
+                {pnlIsUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                {fmtPct(m.pnlPct)} {locale === "id" ? "spot" : "spot"}
+              </div>
+            </div>
+          ) : (
+            <div className="text-right text-[10px] text-[var(--color-text-muted)]">
+              {locale === "id" ? "Live price tidak tersedia" : "Live price unavailable"}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Progress bars */}
+      {currentPrice !== null && (
+        <div className="relative mt-4 space-y-2.5">
+          <ProgressBar
+            label={locale === "id" ? "Menuju TP1" : "Toward TP1"}
+            progress={m.tp1Progress}
+            color="success"
+            target={fmtPrice(m.tp1)}
+          />
+          <ProgressBar
+            label={locale === "id" ? "Menuju TP2" : "Toward TP2"}
+            progress={m.tp2Progress}
+            color="success"
+            target={fmtPrice(m.tp2)}
+          />
+        </div>
+      )}
+
+      {/* Levels — clean inline */}
+      <div className="relative mt-5 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+        <LevelRow label="Entry" value={fmtPrice(m.entry)} color="text-[var(--color-text-primary)]" />
+        <LevelRow label="SL" value={fmtPrice(m.sl)} color="text-[var(--color-danger)]" />
+        <LevelRow label="TP1" value={fmtPrice(m.tp1)} color="text-[var(--color-success)]" />
+        <LevelRow label="TP2" value={fmtPrice(m.tp2)} color="text-[var(--color-success)]" />
+      </div>
+
+      {/* Footer */}
+      <div className="relative mt-4 flex items-center justify-between border-t border-[var(--color-border)]/60 pt-3 text-[11px] text-[var(--color-text-muted)]">
+        <div className="flex items-center gap-3">
+          <span>RR <span className="font-bold text-[var(--color-text-secondary)]">{fmtRr(p.rr)}</span></span>
+          {p.qty !== null && p.qty !== undefined && (
+            <span>Qty <span className="font-bold text-[var(--color-text-secondary)]">{String(p.qty)}</span></span>
+          )}
+        </div>
+        {m.slDistPct !== null && (
+          <span className="text-[var(--color-text-muted)]">
+            SL {(m.slDistPct).toFixed(2)}% {locale === "id" ? "jauh" : "away"}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────────
+function ProgressBar({ label, progress, color, target }: {
+  label: string;
+  progress: number;
+  color: "success" | "danger";
+  target: string;
+}) {
+  const pct = Math.max(0, Math.min(1, progress)) * 100;
+  const barColor = color === "success" ? "bg-[var(--color-success)]" : "bg-[var(--color-danger)]";
+  const textColor = color === "success" ? "text-[var(--color-success)]" : "text-[var(--color-danger)]";
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--color-text-muted)]">
+        <span>{label} <span className="font-mono text-[var(--color-text-secondary)]">{target}</span></span>
+        <span className={`font-bold tabular-nums ${textColor}`}>{pct.toFixed(0)}%</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-bg-primary)]">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function LevelRow({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="flex items-baseline justify-between">
+      <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">{label}</span>
+      <span className={`font-mono text-xs font-semibold tabular-nums ${color}`}>{value}</span>
+    </div>
+  );
+}
+
+function ErrorState({ locale }: { locale: "id" | "en" }) {
+  return (
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
+      <p className="text-sm text-[var(--color-text-muted)]">
+        {locale === "id" ? "Gagal memuat posisi." : "Failed to load positions."}
+      </p>
+    </div>
+  );
+}
+
+function LoadingState({ locale }: { locale: "id" | "en" }) {
+  return (
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
+      <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+        <div className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--color-accent)] border-t-transparent" />
+        {locale === "id" ? "Memuat posisi..." : "Loading positions..."}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ locale }: { locale: "id" | "en" }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-bg-card)] p-10 text-center">
+      <Briefcase size={36} className="mx-auto mb-4 text-[var(--color-text-muted)]" />
+      <p className="text-base font-semibold text-[var(--color-text-secondary)]">
+        {locale === "id" ? "Belum ada posisi terbuka" : "No open positions"}
+      </p>
+      <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+        {locale === "id"
+          ? "Posisi muncul saat limit order ter-fill dan trade lagi running."
+          : "Positions appear when limit orders fill and trades start running."}
+      </p>
     </div>
   );
 }

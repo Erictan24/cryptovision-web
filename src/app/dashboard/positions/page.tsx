@@ -5,28 +5,30 @@ import { Briefcase, TrendingUp, TrendingDown, CheckCircle2, Shield } from "lucid
 import { useLang } from "@/components/LanguageProvider";
 
 type Position = {
-  id: number;
-  signal_id: number | null;
+  id: number | string;
+  signal_id: number | string | null;
   symbol: string;
   direction: string;
   strategy: string;
   quality: string | null;
-  entry: number | null;
-  sl: number | null;
-  tp1: number | null;
-  tp2: number | null;
-  rr: number | null;
-  qty: number | null;
+  entry: number | string | null;
+  sl: number | string | null;
+  tp1: number | string | null;
+  tp2: number | string | null;
+  rr: number | string | null;
+  qty: number | string | null;
   reasons: string[] | null;
   tp1_hit: boolean;
   bep_active: boolean;
   opened_at: string;
 };
 
-function fmtPrice(n: number | null): string {
-  if (n === null || n === undefined) return "—";
-  if (n >= 1) return n.toLocaleString("en-US", { maximumFractionDigits: 4 });
-  return n.toFixed(6);
+function fmtPrice(n: number | string | null): string {
+  if (n === null || n === undefined || n === "") return "—";
+  const num = typeof n === "string" ? parseFloat(n) : n;
+  if (!isFinite(num)) return "—";
+  if (num >= 1) return num.toLocaleString("en-US", { maximumFractionDigits: 4 });
+  return num.toFixed(6);
 }
 
 function timeAgo(iso: string, locale: "id" | "en"): string {
@@ -169,7 +171,7 @@ export default function PositionsPage() {
 
                 {/* Footer: RR + qty */}
                 <div className="mt-3 flex items-center justify-between border-t border-[var(--color-border)] pt-3 text-[11px] text-[var(--color-text-muted)]">
-                  <span>RR <span className="font-bold text-[var(--color-text-secondary)]">{p.rr ? p.rr.toFixed(2) : "—"}</span></span>
+                  <span>RR <span className="font-bold text-[var(--color-text-secondary)]">{p.rr !== null && p.rr !== undefined && p.rr !== "" ? (typeof p.rr === "string" ? parseFloat(p.rr).toFixed(2) : p.rr.toFixed(2)) : "—"}</span></span>
                   {p.qty !== null && p.qty !== undefined && (
                     <span>Qty <span className="font-bold text-[var(--color-text-secondary)]">{p.qty}</span></span>
                   )}

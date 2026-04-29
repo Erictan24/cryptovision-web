@@ -13,7 +13,53 @@ type RawEvent = {
   forecast?: string;
   previous?: string;
   actual?: string;
+  comment?: string;   // deskripsi event dari TradingView
 };
+
+// Raw response dari TradingView calendar API
+type TVEvent = {
+  id: string;
+  title: string;
+  country: string;          // "US", "EU", "GB", "JP", dll
+  indicator?: string;
+  comment?: string;
+  period?: string;
+  source?: string;
+  source_url?: string;
+  date: string;             // ISO timestamp
+  importance: -1 | 0 | 1;   // -1=Low, 0=Medium, 1=High
+  actual?: number | null;
+  previous?: number | null;
+  forecast?: number | null;
+  actualRaw?: number | null;
+  previousRaw?: number | null;
+  forecastRaw?: number | null;
+  currency?: string;
+};
+
+// Map country code TradingView → format yang ada (3-letter currency)
+const TV_COUNTRY_MAP: Record<string, string> = {
+  "US": "USD", "EU": "EUR", "GB": "GBP", "JP": "JPY",
+  "CA": "CAD", "AU": "AUD", "NZ": "NZD", "CH": "CHF",
+  "CN": "CNY", "DE": "EUR", "FR": "EUR", "IT": "EUR",
+  "ES": "EUR",
+};
+
+// Map TradingView importance → impact label
+function mapImportance(imp: -1 | 0 | 1): "High" | "Medium" | "Low" {
+  if (imp === 1) return "High";
+  if (imp === 0) return "Medium";
+  return "Low";
+}
+
+// Format numeric value dari TV → string yang display-friendly
+// e.g. 1.538 → "1.538M" untuk Building Permits, atau langsung jadi "%.2f"
+function formatTVValue(v: number | null | undefined): string | undefined {
+  if (v === null || v === undefined) return undefined;
+  // TV return raw number (e.g. 0.5 = 0.5%, 298500000 = 298.5M).
+  // Tampilkan as-is — UI akan handle format.
+  return String(v);
+}
 
 export type ScenarioKey =
   | "inflation"
@@ -90,6 +136,12 @@ const MAJOR_RATE_DECISION = [
   "RBA Cash Rate", "Cash Rate",
 ];
 
+// Sources:
+// - PRIMARY: TradingView calendar (include actual values, free, no auth)
+// - FALLBACK: Forex Factory (kalau TV down, source data sebelumnya)
+const TV_API = "https://economic-calendar.tradingview.com/events";
+const TV_COUNTRIES = "US,EU,GB,JP,CA,AU";
+
 const FF_URLS = [
   "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
   "https://nfs.faireconomy.media/ff_calendar_nextweek.json",
@@ -129,9 +181,56 @@ function isRelevantForCrypto(e: RawEvent): boolean {
   return false;
 }
 
-async function fetchCalendar(): Promise<RawEvent[]> {
+/**
+ * PRIMARY: Fetch dari TradingView calendar API.
+ * Include actual + forecast + previous + importance + comment.
+ * No auth, no rate limit visible. Origin header diperlukan.
+ */
+async function fetchFromTradingView(): Promise<RawEvent[]> {
+  const now = Date.now();
+  const fromTs = now - 12 * 60 * 60 * 1000;          // 12 jam lalu
+  const toTs   = now + 7 * 24 * 60 * 60 * 1000;       // 7 hari ke depan
+  const fromIso = new Date(fromTs).toISOString();
+  const toIso   = new Date(toTs).toISOString();
+
+  const url = `${TV_API}?from=${fromIso}&to=${toIso}&countries=${TV_COUNTRIES}`;
+
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "Origin": "https://www.tradingview.com",
+      },
+      next: { revalidate: 300 },
+    });
+    if (!resp.ok) return [];
+    const json = await resp.json() as { result?: TVEvent[] };
+    const events = json.result || [];
+
+    return events.map((tv): RawEvent => {
+      const country = TV_COUNTRY_MAP[tv.country] || tv.country;
+      return {
+        title    : tv.indicator || tv.title,
+        country  : country,
+        date     : tv.date,
+        impact   : mapImportance(tv.importance),
+        actual   : formatTVValue(tv.actual),
+        forecast : formatTVValue(tv.forecast),
+        previous : formatTVValue(tv.previous),
+        comment  : tv.comment,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * FALLBACK: Fetch dari Forex Factory (data tanpa actual values).
+ * Dipakai kalau TradingView API down/error.
+ */
+async function fetchFromForexFactory(): Promise<RawEvent[]> {
   const all: RawEvent[] = [];
-  // Cache-bust query param agar Forex Factory CDN tidak return data lama
   const cacheBust = `?t=${Math.floor(Date.now() / (5 * 60 * 1000))}`;
   for (const url of FF_URLS) {
     try {
@@ -148,6 +247,14 @@ async function fetchCalendar(): Promise<RawEvent[]> {
     }
   }
   return all;
+}
+
+async function fetchCalendar(): Promise<RawEvent[]> {
+  // Try TradingView first (has actual values)
+  const tv = await fetchFromTradingView();
+  if (tv.length > 0) return tv;
+  // Fallback ke Forex Factory kalau TV gagal
+  return await fetchFromForexFactory();
 }
 
 export async function GET() {

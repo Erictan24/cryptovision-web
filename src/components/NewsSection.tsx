@@ -236,6 +236,75 @@ function compareActual(actual?: string, forecast?: string): "better" | "worse" |
   return "neutral";
 }
 
+/**
+ * Tentukan dampak ke crypto berdasarkan tipe event + actual vs forecast.
+ * - Higher actual umumnya = BEARISH crypto (kecuali Unemployment / Jobless Claims).
+ * - Returns null untuk event yang tidak masuk kategori (avoid misleading label).
+ */
+function getCryptoImpact(
+  eventTitle: string,
+  comparison: "better" | "worse" | "neutral",
+): { direction: "bullish" | "bearish"; label: { id: string; en: string } } | null {
+  if (comparison === "neutral") return null;
+  const t = eventTitle.toLowerCase();
+
+  // Special case: higher = BULLISH crypto (Fed dovish karena ekonomi lemah)
+  const dovishOnHigher = [
+    "unemployment rate",
+    "initial jobless",
+    "continuing claims",
+    "jobless claims",
+  ];
+  if (dovishOnHigher.some((k) => t.includes(k))) {
+    if (comparison === "better") {
+      return {
+        direction: "bullish",
+        label: {
+          id: "BULLISH crypto — pengangguran naik → Fed cenderung pangkas suku bunga",
+          en: "BULLISH crypto — joblessness up → Fed leans toward rate cut",
+        },
+      };
+    }
+    return {
+      direction: "bearish",
+      label: {
+        id: "BEARISH crypto — tenaga kerja kuat → Fed pertahankan suku bunga tinggi",
+        en: "BEARISH crypto — labor strong → Fed keeps rates high",
+      },
+    };
+  }
+
+  // Most cases: higher actual = BEARISH crypto (Fed hawkish)
+  const hawkishOnHigher = [
+    "cpi", "ppi", "pce", "inflation", "price index",
+    "nfp", "non-farm", "non farm", "nonfarm", "payroll", "adp employ",
+    "pmi", "ism", "manufacturing", "services index",
+    "retail sales", "gdp", "consumer confidence",
+    "fed funds", "interest rate decision", "rate decision", "fomc rate",
+    "core ppi", "core cpi", "core pce",
+  ];
+  if (hawkishOnHigher.some((k) => t.includes(k))) {
+    if (comparison === "better") {
+      return {
+        direction: "bearish",
+        label: {
+          id: "BEARISH crypto — data lebih kuat → Fed cenderung hawkish (rate tinggi)",
+          en: "BEARISH crypto — data stronger → Fed leans hawkish (rates stay high)",
+        },
+      };
+    }
+    return {
+      direction: "bullish",
+      label: {
+        id: "BULLISH crypto — data lebih lemah → Fed cenderung dovish (rate cut)",
+        en: "BULLISH crypto — data weaker → Fed leans dovish (rate cut)",
+      },
+    };
+  }
+
+  return null;  // event tidak masuk kategori → tidak kasih label sembarang
+}
+
 function ImpactBars({ impact }: { impact: "High" | "Medium" | "Low" }) {
   const fillCount = impact === "High" ? 3 : impact === "Medium" ? 2 : 1;
   const color =
@@ -568,27 +637,59 @@ export default function NewsSection() {
                             <p className="text-xs text-[var(--color-text-secondary)]">{scenario.bearish}</p>
                           </div>
                         </div>
-                        {isPast && ev.actual && (
-                          <div className="mt-3 rounded-lg bg-[var(--color-bg-card)] border border-[var(--color-border)] p-3">
-                            <div className="mb-1 text-[10px] font-bold uppercase text-[var(--color-text-muted)]">
-                              {locale === "id" ? "Hasil Aktual" : "Actual Result"}
-                            </div>
-                            <div className="text-sm">
-                              <span className="text-[var(--color-text-muted)]">Actual: </span>
-                              <span className={`font-bold ${actualColor}`}>{ev.actual}</span>
-                              <span className="text-[var(--color-text-muted)]">
-                                {locale === "id" ? " vs Forecast " : " vs Forecast "}{ev.forecast || "—"}
-                              </span>
-                              {cmp !== "neutral" && (
-                                <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
-                                  {cmp === "better"
-                                    ? (locale === "id" ? "→ Lebih tinggi dari ekspektasi" : "→ Higher than expected")
-                                    : (locale === "id" ? "→ Lebih rendah dari ekspektasi" : "→ Lower than expected")}
+                        {isPast && ev.actual && (() => {
+                          const impact = getCryptoImpact(ev.title, cmp);
+                          const impactBg = impact?.direction === "bullish"
+                            ? "border-[var(--color-success)]/30 bg-[var(--color-success)]/5"
+                            : impact?.direction === "bearish"
+                              ? "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5"
+                              : "";
+                          const impactColor = impact?.direction === "bullish"
+                            ? "text-[var(--color-success)]"
+                            : "text-[var(--color-danger)]";
+                          return (
+                            <div className="mt-3 space-y-2">
+                              <div className="rounded-lg bg-[var(--color-bg-card)] border border-[var(--color-border)] p-3">
+                                <div className="mb-1 text-[10px] font-bold uppercase text-[var(--color-text-muted)]">
+                                  {locale === "id" ? "Hasil Aktual" : "Actual Result"}
+                                </div>
+                                <div className="text-sm">
+                                  <span className="text-[var(--color-text-muted)]">Actual: </span>
+                                  <span className={`font-bold ${actualColor}`}>{ev.actual}</span>
+                                  <span className="text-[var(--color-text-muted)]">
+                                    {locale === "id" ? " vs Forecast " : " vs Forecast "}{ev.forecast || "—"}
+                                  </span>
+                                  {cmp !== "neutral" && (
+                                    <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                                      {cmp === "better"
+                                        ? (locale === "id" ? "→ Lebih tinggi dari ekspektasi" : "→ Higher than expected")
+                                        : (locale === "id" ? "→ Lebih rendah dari ekspektasi" : "→ Lower than expected")}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              {impact && (
+                                <div className={`rounded-lg border p-3 ${impactBg}`}>
+                                  <div className="flex items-start gap-2">
+                                    {impact.direction === "bullish" ? (
+                                      <TrendingUp size={14} className={`${impactColor} mt-0.5 shrink-0`} />
+                                    ) : (
+                                      <TrendingDown size={14} className={`${impactColor} mt-0.5 shrink-0`} />
+                                    )}
+                                    <div className="flex-1">
+                                      <div className={`text-[10px] font-bold uppercase ${impactColor} mb-0.5`}>
+                                        {locale === "id" ? "Dampak ke Crypto" : "Crypto Impact"}
+                                      </div>
+                                      <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                                        {impact.label[locale]}
+                                      </p>
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     )}
                   </div>

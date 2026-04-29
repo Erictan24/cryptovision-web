@@ -254,6 +254,33 @@ export async function getPositionsDb() {
   return await sql`SELECT * FROM positions ORDER BY opened_at DESC`;
 }
 
+/**
+ * Delete trade entries by symbol (recovery dari race condition bug yang push
+ * fake "closed" trade ke history padahal posisi masih running di exchange).
+ * - hoursAgo: hanya delete entry yang closed_at dalam N jam terakhir (default 48)
+ *   — biar tidak nyentuh history lama.
+ * - limit: max baris yang dihapus (default 1) — safety cap.
+ * Returns rows deleted count.
+ */
+export async function deleteTradeBySymbolDb(
+  symbol: string,
+  hoursAgo: number = 48,
+  limit: number = 1,
+): Promise<number> {
+  const sql = getDb();
+  const result = await sql`
+    DELETE FROM trades
+    WHERE id IN (
+      SELECT id FROM trades
+      WHERE symbol = ${symbol}
+        AND closed_at >= NOW() - (${hoursAgo} || ' hours')::INTERVAL
+      ORDER BY closed_at DESC
+      LIMIT ${limit}
+    )
+  `;
+  return Array.isArray(result) ? result.length : 0;
+}
+
 export async function getTradesDb(limit = 100, hours?: number) {
   const sql = getDb();
   if (hours && hours > 0) {

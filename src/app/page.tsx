@@ -9,10 +9,12 @@ import Pricing from "@/components/Pricing";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
+import StructuredData from "@/components/StructuredData";
 
 export default function Home() {
   return (
     <>
+      <StructuredData />
       <Navbar />
       <main>
         <Hero />

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { pushTradeDb, getTradesDb, deleteTradeBySymbolDb } from "@/lib/db";
+import { pushTradeDb, getTradesDb, deleteTradeBySymbolDb, updateTradeOutcomeDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +64,37 @@ export async function DELETE(req: NextRequest) {
   try {
     const deleted = await deleteTradeBySymbolDb(symbol, hours, limit);
     return NextResponse.json({ ok: true, deleted });
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+  }
+}
+
+/**
+ * PATCH — update outcome label trade existing (recovery legacy data).
+ * Body JSON: { symbol, secret, outcome, hours?, limit? }
+ *   outcome: 'TP1' | 'TP2' | 'BEP' | 'SL'
+ *   hours  : window lookback (default 48)
+ *   limit  : max rows updated (default 1, max 5)
+ */
+export async function PATCH(req: NextRequest) {
+  const body = await req.json();
+  const { symbol, secret, outcome, hours, limit } = body || {};
+
+  if (!verifyHmac(secret || "", symbol || "")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!symbol || !outcome) {
+    return NextResponse.json({ error: "missing_symbol_or_outcome" }, { status: 400 });
+  }
+  if (!["TP1", "TP2", "BEP", "SL"].includes(outcome)) {
+    return NextResponse.json({ error: "invalid_outcome" }, { status: 400 });
+  }
+  const safeHours = Math.max(1, parseInt(String(hours || "48")));
+  const safeLimit = Math.min(5, Math.max(1, parseInt(String(limit || "1"))));
+
+  try {
+    const updated = await updateTradeOutcomeDb(symbol, outcome, safeHours, safeLimit);
+    return NextResponse.json({ ok: true, updated });
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
   }

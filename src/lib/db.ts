@@ -262,6 +262,33 @@ export async function getPositionsDb() {
  * - limit: max baris yang dihapus (default 1) — safety cap.
  * Returns rows deleted count.
  */
+/**
+ * Update outcome label baris trade existing (recovery untuk legacy trade
+ * yang ke-push sebelum 2026-05-03 dengan label PROFIT/LOSS generic).
+ * Match by symbol + window. Return rows affected count.
+ */
+export async function updateTradeOutcomeDb(
+  symbol: string,
+  newOutcome: string,
+  hoursAgo: number = 48,
+  limit: number = 1,
+): Promise<number> {
+  const sql = getDb();
+  const result = await sql`
+    UPDATE trades
+    SET outcome = ${newOutcome}
+    WHERE id IN (
+      SELECT id FROM trades
+      WHERE symbol = ${symbol}
+        AND closed_at >= NOW() - (${hoursAgo} || ' hours')::INTERVAL
+      ORDER BY closed_at DESC
+      LIMIT ${limit}
+    )
+    RETURNING id
+  `;
+  return Array.isArray(result) ? result.length : 0;
+}
+
 export async function deleteTradeBySymbolDb(
   symbol: string,
   hoursAgo: number = 48,
@@ -298,18 +325,38 @@ export async function getTradesDb(limit = 100, hours?: number) {
 export async function getDetailedStatsDb() {
   const sql = getDb();
 
-  // Total counts + outcome breakdown via pnl_r bucket
-  // TP2: pnl_r >= 1.5 (full target)
-  // TP1: 0.3 <= pnl_r < 1.5 (parsial take-profit + ran lebih)
-  // BEP: |pnl_r| < 0.1
-  // SL : pnl_r <= -0.5
+  // Total counts + outcome breakdown.
+  // 2026-05-03: prioritas pakai outcome string dari bot (TP1/TP2/BEP/SL —
+  // accurate, base on stage tracking). Fallback ke pnl_r threshold untuk
+  // legacy data (outcome = PROFIT/LOSS/BEP).
+  // Bot mental model:
+  //   TP2 = price actually hit TP2 target
+  //   TP1 = TP1 reached, BEP active, exit BEP/trail
+  //   BEP = TP1 belum kena, breakeven
+  //   SL  = TP1 belum kena, net loss
   const summary = await sql`
     SELECT
-      COUNT(*)::int                                                            AS total,
-      SUM(CASE WHEN pnl_r >= 1.5                                  THEN 1 ELSE 0 END)::int AS tp2_count,
-      SUM(CASE WHEN pnl_r >= 0.3 AND pnl_r < 1.5                  THEN 1 ELSE 0 END)::int AS tp1_count,
-      SUM(CASE WHEN ABS(pnl_r) < 0.1                              THEN 1 ELSE 0 END)::int AS bep_count,
-      SUM(CASE WHEN pnl_r <= -0.5                                 THEN 1 ELSE 0 END)::int AS sl_count,
+      COUNT(*)::int                                                              AS total,
+      SUM(CASE
+        WHEN outcome = 'TP2' THEN 1
+        WHEN outcome NOT IN ('TP2','TP1','BEP','SL') AND pnl_r >= 1.5 THEN 1
+        ELSE 0
+      END)::int AS tp2_count,
+      SUM(CASE
+        WHEN outcome = 'TP1' THEN 1
+        WHEN outcome NOT IN ('TP2','TP1','BEP','SL') AND pnl_r >= 0.3 AND pnl_r < 1.5 THEN 1
+        ELSE 0
+      END)::int AS tp1_count,
+      SUM(CASE
+        WHEN outcome = 'BEP' THEN 1
+        WHEN outcome NOT IN ('TP2','TP1','BEP','SL') AND ABS(pnl_r) < 0.1 THEN 1
+        ELSE 0
+      END)::int AS bep_count,
+      SUM(CASE
+        WHEN outcome = 'SL' THEN 1
+        WHEN outcome NOT IN ('TP2','TP1','BEP','SL') AND pnl_r <= -0.5 THEN 1
+        ELSE 0
+      END)::int AS sl_count,
       SUM(CASE WHEN pnl_usd > 0                                   THEN 1 ELSE 0 END)::int AS wins,
       SUM(CASE WHEN pnl_usd < 0                                   THEN 1 ELSE 0 END)::int AS losses,
       AVG(pnl_r)::float                                                          AS avg_r,

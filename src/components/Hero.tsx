@@ -6,9 +6,9 @@ import { ArrowRight, TrendingUp, Target, Coins } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 
 type LiveStats = {
-  today: { total: string; wins: string; net_pnl: string };
-  month: { total: string; wins: string; net_pnl: string };
-  all: { total: string; wins: string; net_pnl: string };
+  today: { total: string; wins: string; net_pnl: string; avg_r: string | null };
+  month: { total: string; wins: string; net_pnl: string; avg_r: string | null };
+  all:   { total: string; wins: string; net_pnl: string; avg_r: string | null };
 };
 
 export default function Hero() {
@@ -22,12 +22,13 @@ export default function Hero() {
       .catch(() => {});
   }, []);
 
-  // Live stats (kalau ada data live) — tidak hardcode WR/EV claim untuk
-  // hindari kesan "kemakan iklan". Fallback ke generic descriptor kalau no data.
+  // Live stats (kalau ada data live) — tampilkan angka apa adanya, tidak claim.
+  // Card 3: EV per trade (rata-rata R per trade) — informatif, bukan ad copy.
   const monthTotal = live ? parseInt(live.month.total || "0") : 0;
-  const monthWins  = live ? parseInt(live.month.wins || "0") : 0;
   const monthPnl   = live ? parseFloat(live.month.net_pnl || "0") : 0;
-  const wr = monthTotal > 0 ? (monthWins / monthTotal) * 100 : 0;
+  const monthAvgR  = live && live.month.avg_r != null
+    ? parseFloat(String(live.month.avg_r))
+    : null;
 
   const stats = [
     {
@@ -46,9 +47,11 @@ export default function Hero() {
     },
     {
       icon: Target,
-      value: monthTotal > 0 && wr > 0 ? `${wr.toFixed(0)}%` : "24/7",
+      value: monthTotal > 0 && monthAvgR !== null
+        ? `${monthAvgR >= 0 ? "+" : ""}${monthAvgR.toFixed(2)}R`
+        : "24/7",
       label: monthTotal > 0
-        ? (locale === "id" ? "WR Live" : "Live WR")
+        ? (locale === "id" ? "EV per Trade" : "EV per Trade")
         : (locale === "id" ? "Otomatis" : "Automated"),
     },
   ];

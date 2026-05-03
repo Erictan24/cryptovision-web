@@ -417,17 +417,17 @@ export async function getPerformanceStatsDb() {
   const sql = getDb();
   const today = await sql`
     SELECT COUNT(*) AS total, SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END) AS wins,
-           SUM(pnl_usd) AS net_pnl
+           SUM(pnl_usd) AS net_pnl, AVG(pnl_r) AS avg_r
     FROM trades WHERE closed_at >= CURRENT_DATE
   `;
   const month = await sql`
     SELECT COUNT(*) AS total, SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END) AS wins,
-           SUM(pnl_usd) AS net_pnl
+           SUM(pnl_usd) AS net_pnl, AVG(pnl_r) AS avg_r
     FROM trades WHERE closed_at >= DATE_TRUNC('month', CURRENT_DATE)
   `;
   const all = await sql`
     SELECT COUNT(*) AS total, SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END) AS wins,
-           SUM(pnl_usd) AS net_pnl
+           SUM(pnl_usd) AS net_pnl, AVG(pnl_r) AS avg_r
     FROM trades
   `;
   return { today: today[0], month: month[0], all: all[0] };

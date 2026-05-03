@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useLang } from "./LanguageProvider";
 
 type LiveStats = {
-  all: { total: string; wins: string; net_pnl: string };
+  all: { total: string; wins: string; net_pnl: string; avg_r: string | null };
 };
 
 export default function Stats() {
@@ -19,9 +19,13 @@ export default function Stats() {
       .catch(() => {});
   }, []);
 
-  // Live data kalau ada, fallback ke generic descriptor (tidak claim WR/EV)
+  // Live data kalau ada, fallback ke generic descriptor (tidak claim).
+  // Card 3 = EV per trade (avg R), informatif tanpa kesan iklan.
   const allTotal = live ? parseInt(live.all.total || "0") : 0;
   const allPnl   = live ? parseFloat(live.all.net_pnl || "0") : 0;
+  const allAvgR  = live && live.all.avg_r != null
+    ? parseFloat(String(live.all.avg_r))
+    : null;
 
   const items = [
     {
@@ -32,7 +36,12 @@ export default function Stats() {
       value: allTotal > 0 ? `${allPnl >= 0 ? "+" : ""}$${allPnl.toFixed(0)}` : "Live",
       label: locale === "id" ? "PnL Total" : "Total PnL",
     },
-    { value: "Real-Time", label: locale === "id" ? "Dashboard" : "Dashboard" },
+    {
+      value: allTotal > 0 && allAvgR !== null
+        ? `${allAvgR >= 0 ? "+" : ""}${allAvgR.toFixed(2)}R`
+        : "Live",
+      label: locale === "id" ? "EV per Trade" : "EV per Trade",
+    },
     { value: "24/7", label: t.stats.uptime },
   ];
 

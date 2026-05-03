@@ -4,10 +4,17 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useLang } from "@/components/LanguageProvider";
 import MarketOverview from "@/components/MarketOverview";
-import { Bot, CreditCard, Link2, User, ChevronRight, Sparkles, Activity, BarChart3, Briefcase } from "lucide-react";
+import { Bot, CreditCard, Link2, User, ChevronRight, Sparkles, Activity, BarChart3, Briefcase, PartyPopper, Bell, BookOpen } from "lucide-react";
 import Link from "next/link";
 
-type Sub = { plan: string; planName?: string; plan_name?: string; status: string } | null;
+type Sub = {
+  plan: string;
+  planName?: string;
+  plan_name?: string;
+  status: string;
+  activated_at?: string;
+  expires_at?: string;
+} | null;
 
 export default function DashboardOverviewPage() {
   const { user } = useAuth();
@@ -73,6 +80,23 @@ export default function DashboardOverviewPage() {
   // Welcome panel untuk user yang baru login (belum subscribe)
   const showWelcome = !isActive;
 
+  // Welcome panel untuk user yang baru subscribe (< 7 hari sejak activated_at).
+  // Bantu first-time paid user paham fitur baru yang ke-unlock.
+  const justSubscribed = (() => {
+    if (!isActive || !sub?.activated_at) return false;
+    const activatedAt = new Date(sub.activated_at).getTime();
+    const ageMs = Date.now() - activatedAt;
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+    return ageMs < sevenDaysMs;
+  })();
+
+  // Format expiry date untuk display
+  const expiryDate = sub?.expires_at
+    ? new Date(sub.expires_at).toLocaleDateString(locale === "id" ? "id-ID" : "en-US", {
+        day: "numeric", month: "long", year: "numeric",
+      })
+    : "";
+
   return (
     <div>
       <div className="mb-6">
@@ -86,6 +110,98 @@ export default function DashboardOverviewPage() {
           {locale === "id" ? "— Terhubung via Telegram" : "— Connected via Telegram"}
         </p>
       </div>
+
+      {/* Welcome panel untuk user yang BARU subscribe (< 7 hari) */}
+      {justSubscribed && (
+        <div className="mb-6 rounded-2xl border border-[var(--color-success)]/40 bg-gradient-to-br from-[var(--color-success)]/10 via-[var(--color-accent)]/5 to-transparent p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-success)]/20">
+              <PartyPopper size={20} className="text-[var(--color-success)]" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-bold">
+                {locale === "id"
+                  ? `Selamat ${user.name}, subscription ${planName} aktif! 🎉`
+                  : `Welcome ${user.name}, your ${planName} subscription is active! 🎉`}
+              </h3>
+              {expiryDate && (
+                <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                  {locale === "id"
+                    ? `Berlaku sampai ${expiryDate}.`
+                    : `Valid until ${expiryDate}.`}
+                </p>
+              )}
+              <p className="mt-3 text-sm font-semibold text-[var(--color-text-primary)]">
+                {locale === "id" ? "Cara mulai:" : "Getting started:"}
+              </p>
+              <ol className="mt-2 space-y-2 text-sm text-[var(--color-text-secondary)]">
+                <li className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-success)] text-[10px] font-bold text-white">1</span>
+                  <span>
+                    {locale === "id" ? (
+                      <>Buka <Link href="/dashboard/signals" className="font-semibold text-[var(--color-accent-light)] underline">Sinyal Trading</Link> — sinyal real-time bot, refresh tiap 30 detik.</>
+                    ) : (
+                      <>Open <Link href="/dashboard/signals" className="font-semibold text-[var(--color-accent-light)] underline">Trading Signals</Link> — bot signals real-time, refresh every 30s.</>
+                    )}
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-success)] text-[10px] font-bold text-white">2</span>
+                  <span>
+                    {locale === "id" ? (
+                      <>Pantau <Link href="/dashboard/positions" className="font-semibold text-[var(--color-accent-light)] underline">Posisi Aktif</Link> — track entry, SL, TP1/TP2, dan PnL live.</>
+                    ) : (
+                      <>Monitor <Link href="/dashboard/positions" className="font-semibold text-[var(--color-accent-light)] underline">Active Positions</Link> — track entry, SL, TP1/TP2, live PnL.</>
+                    )}
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-success)] text-[10px] font-bold text-white">3</span>
+                  <span>
+                    {locale === "id" ? (
+                      <>Lihat <Link href="/dashboard/statistics" className="font-semibold text-[var(--color-accent-light)] underline">Statistik</Link> — WR, EV, breakdown per strategi.</>
+                    ) : (
+                      <>View <Link href="/dashboard/statistics" className="font-semibold text-[var(--color-accent-light)] underline">Statistics</Link> — WR, EV, strategy breakdown.</>
+                    )}
+                  </span>
+                </li>
+              </ol>
+
+              {/* Quick tips */}
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <div className="flex items-start gap-2 rounded-lg bg-[var(--color-bg-card)] p-3">
+                  <Bell size={14} className="mt-0.5 shrink-0 text-[var(--color-accent)]" />
+                  <div className="text-xs">
+                    <p className="font-semibold">
+                      {locale === "id" ? "Notif Telegram aktif" : "Telegram alerts on"}
+                    </p>
+                    <p className="text-[var(--color-text-muted)]">
+                      {locale === "id"
+                        ? "Setiap signal baru otomatis broadcast ke chat kamu."
+                        : "Every new signal auto-broadcasts to your chat."}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 rounded-lg bg-[var(--color-bg-card)] p-3">
+                  <BookOpen size={14} className="mt-0.5 shrink-0 text-[var(--color-accent)]" />
+                  <div className="text-xs">
+                    <p className="font-semibold">
+                      {locale === "id" ? "Pelajari istilah" : "Learn the terms"}
+                    </p>
+                    <p className="text-[var(--color-text-muted)]">
+                      {locale === "id" ? (
+                        <>Cek <Link href="/glossary" className="text-[var(--color-accent-light)] underline">Glossary</Link> kalau ada istilah baru.</>
+                      ) : (
+                        <>See <Link href="/glossary" className="text-[var(--color-accent-light)] underline">Glossary</Link> for new terms.</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Welcome onboarding untuk user belum subscribe */}
       {showWelcome && (

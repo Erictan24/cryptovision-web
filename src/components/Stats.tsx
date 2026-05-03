@@ -33,7 +33,9 @@ export default function Stats() {
       label: locale === "id" ? "Trade Tracked" : "Trades Tracked",
     },
     {
-      value: allTotal > 0 ? `${allPnl >= 0 ? "+" : ""}$${allPnl.toFixed(0)}` : "Live",
+      value: allTotal > 0
+        ? `${allPnl >= 0 ? "+" : ""}$${Math.abs(allPnl) >= 10 ? allPnl.toFixed(0) : allPnl.toFixed(2)}`
+        : "Live",
       label: locale === "id" ? "PnL Total" : "Total PnL",
     },
     {

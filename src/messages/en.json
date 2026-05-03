@@ -7,12 +7,12 @@
   },
   "hero": {
     "title": "Automated Crypto Trading with AI",
-    "subtitle": "Scalping & swing trading bots running 24/7. 60%+ win rate. Two bots, one platform. Start for free.",
+    "subtitle": "Automated scalping & swing trading 24/7. Real-time dashboard, full performance transparency. Start for free.",
     "cta_primary": "Start Free",
     "cta_secondary": "View Pricing",
-    "stat_wr": "Win Rate",
-    "stat_profit": "Backtest Profit",
-    "stat_coins": "Coins Supported"
+    "stat_wr": "Track Record",
+    "stat_profit": "Live Performance",
+    "stat_coins": "Coins"
   },
   "features": {
     "title": "Two Bots, One Platform",
@@ -24,10 +24,10 @@
     "scalp_f3": "3-stage trailing stop",
     "scalp_f4": "50+ coins",
     "swing_title": "Swing Bot",
-    "swing_desc": "Catch big trends on 1H & 4H. 60%+ win rate validated. Auto trailing stop locks profit.",
+    "swing_desc": "Catch big trends on 1H & 4H. Auto trailing stop locks profit. Data-driven multi-timeframe filters.",
     "swing_f1": "1H + 4H timeframe",
-    "swing_f2": "60%+ validated WR",
-    "swing_f3": "Multi-timeframe filter",
+    "swing_f2": "Data-driven filters",
+    "swing_f3": "Multi-timeframe analysis",
     "swing_f4": "Smart risk management",
     "indicator_title": "TradingView Indicator",
     "indicator_desc": "BUY/SELL signals directly on your TradingView chart. For manual traders who want an edge.",
@@ -43,13 +43,13 @@
     "step1_title": "Sign Up Free",
     "step1_desc": "Create your account in 30 seconds. No credit card required.",
     "step2_title": "Connect Exchange",
-    "step2_desc": "Link your exchange API (Bitunix, MEXC, BingX). The bot cannot withdraw your funds.",
+    "step2_desc": "Link your exchange API. The bot can ONLY trade — it cannot withdraw your funds.",
     "step3_title": "Bot Works, You Sleep",
     "step3_desc": "Bot analyzes markets 24/7, enters when opportunity strikes, exits with profit."
   },
   "pricing": {
     "title": "Choose Your Plan",
-    "subtitle": "Scalping + Swing Bot — 24/7 auto trading with 73% WR",
+    "subtitle": "Scalping + Swing Bot — 24/7 auto trading with transparent dashboard",
     "currency_idr": "IDR",
     "currency_usd": "USDT",
     "popular": "Popular",

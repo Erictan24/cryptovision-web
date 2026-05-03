@@ -25,12 +25,12 @@ const REPLY_RULES: Array<{ keywords: string[]; id: string; en: string }> = [
     en: "Minimum capital:\n• Start from $50\n• Recommended: $100-$300 for optimal results\n• Risk per trade adjustable (0.5-5%)\n• Default: $1 per trade (very conservative)\n\nBigger capital = bigger profit potential." },
   // Exchange
   { keywords: ["exchange", "bitunix", "mexc", "bingx", "binance", "bybit"],
-    id: "Exchange yang didukung:\n• Bitunix (utama)\n• MEXC\n• BingX\n\nBot trading di Futures market. Kamu perlu buat akun di salah satu exchange dan generate API key.",
-    en: "Supported exchanges:\n• Bitunix (primary)\n• MEXC\n• BingX\n\nBot trades on Futures market. You need an account on one of these exchanges and generate an API key." },
-  // Win rate / Performance
+    id: "Bot trading di Futures market exchange yang kamu pilih. Saat ini support sejumlah exchange utama, dengan rencana ekspansi multi-exchange.\n\nKamu perlu buat akun exchange dan generate API key (trading-only, NO withdrawal).",
+    en: "Bot trades on Futures market via your chosen exchange. Currently supports several major exchanges, with multi-exchange expansion planned.\n\nYou need to create an exchange account and generate API key (trading-only, NO withdrawal)." },
+  // Performance / Track Record
   { keywords: ["profit", "winrate", "win rate", "wr", "untung", "hasil", "performance", "return", "roi"],
-    id: "Performance bot kami (backtest 90 hari, 100 coin):\n• Scalping Bot: WR 69%, +$17/bulan\n• Swing Bot: WR 77%, +$31/bulan\n• Combined: WR 73%, +$48/bulan\n\nSemua di risk $1 per trade. Profit scale linear dengan risk.",
-    en: "Our bot performance (90-day backtest, 100 coins):\n• Scalping Bot: 69% WR, +$17/mo\n• Swing Bot: 77% WR, +$31/mo\n• Combined: 73% WR, +$48/mo\n\nAll at $1 risk per trade. Profit scales linearly with risk." },
+    id: "Lihat track record live bot kami secara transparan di:\n\n• Halaman /proof — statistik agregat performa\n• Dashboard /statistik — breakdown per strategi/kualitas/arah\n• Riwayat /riwayat — setiap trade dengan entry, exit, PnL\n\nTransparansi penuh — angka apa adanya, tanpa cherry-pick.",
+    en: "View our bot's live track record transparently at:\n\n• /proof — aggregate performance stats\n• /dashboard/statistics — breakdown per strategy/quality/direction\n• /dashboard/history — every trade with entry, exit, PnL\n\nFull transparency — no cherry-picking." },
   // How it works
   { keywords: ["cara", "how", "gimana", "bagaimana", "kerja", "work", "pakai", "use", "setup", "mulai"],
     id: "Cara kerja CryptoVision:\n1. Daftar & pilih paket\n2. Connect exchange via API key\n3. Bot otomatis analisa market 24/7\n4. Bot entry saat ada peluang\n5. Trailing stop otomatis lock profit\n\nKamu tinggal duduk santai!",

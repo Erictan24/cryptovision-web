@@ -7,12 +7,12 @@
   },
   "hero": {
     "title": "Trading Crypto Otomatis dengan AI",
-    "subtitle": "Bot scalping & swing trading 24/7. Win rate 60%+. Dua bot, satu platform. Mulai dari gratis.",
+    "subtitle": "Bot scalping & swing trading otomatis 24/7. Dashboard real-time, transparansi performa lengkap. Mulai dari gratis.",
     "cta_primary": "Mulai Gratis",
     "cta_secondary": "Lihat Harga",
-    "stat_wr": "Win Rate",
-    "stat_profit": "Profit Backtest",
-    "stat_coins": "Coins Supported"
+    "stat_wr": "Track Record",
+    "stat_profit": "Performa Live",
+    "stat_coins": "Coins"
   },
   "features": {
     "title": "Dua Bot, Satu Platform",
@@ -24,10 +24,10 @@
     "scalp_f3": "Trailing stop 3 stage",
     "scalp_f4": "50+ coins",
     "swing_title": "Bot Swing",
-    "swing_desc": "Tangkap trend besar di 1H & 4H. Win rate 60%+. Trailing stop otomatis lock profit.",
+    "swing_desc": "Tangkap trend besar di 1H & 4H. Trailing stop otomatis lock profit. Filter data-driven multi-timeframe.",
     "swing_f1": "Timeframe 1H + 4H",
-    "swing_f2": "WR 60%+ tervalidasi",
-    "swing_f3": "Multi-timeframe filter",
+    "swing_f2": "Filter data-driven",
+    "swing_f3": "Multi-timeframe analysis",
     "swing_f4": "Smart risk management",
     "indicator_title": "Indikator TradingView",
     "indicator_desc": "Signal BUY/SELL langsung di chart TradingView. Untuk kamu yang suka trading manual.",
@@ -43,13 +43,13 @@
     "step1_title": "Daftar Gratis",
     "step1_desc": "Buat akun dalam 30 detik. Tanpa kartu kredit.",
     "step2_title": "Hubungkan Exchange",
-    "step2_desc": "Connect API exchange kamu (Bitunix, MEXC, BingX). Bot tidak bisa withdraw dana.",
+    "step2_desc": "Connect API exchange kamu. Bot hanya bisa trading, TIDAK bisa withdraw dana.",
     "step3_title": "Bot Bekerja, Kamu Tidur",
     "step3_desc": "Bot analisa market 24/7, entry saat peluang muncul, exit dengan profit."
   },
   "pricing": {
     "title": "Pilih Paket",
-    "subtitle": "Bot Scalping + Swing — auto trade 24/7 dengan WR 73%",
+    "subtitle": "Bot Scalping + Swing — auto trade 24/7 dengan dashboard transparan",
     "currency_idr": "IDR",
     "currency_usd": "USDT",
     "popular": "Populer",

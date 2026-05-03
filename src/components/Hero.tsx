@@ -12,7 +12,7 @@ type LiveStats = {
 };
 
 export default function Hero() {
-  const { t } = useLang();
+  const { t, locale } = useLang();
   const [live, setLive] = useState<LiveStats | null>(null);
 
   useEffect(() => {
@@ -22,7 +22,8 @@ export default function Hero() {
       .catch(() => {});
   }, []);
 
-  // Live stats (kalau ada data) atau fallback ke target backtest
+  // Live stats (kalau ada data live) — tidak hardcode WR/EV claim untuk
+  // hindari kesan "kemakan iklan". Fallback ke generic descriptor kalau no data.
   const monthTotal = live ? parseInt(live.month.total || "0") : 0;
   const monthWins  = live ? parseInt(live.month.wins || "0") : 0;
   const monthPnl   = live ? parseFloat(live.month.net_pnl || "0") : 0;
@@ -30,21 +31,25 @@ export default function Hero() {
 
   const stats = [
     {
-      icon: Target,
-      value: monthTotal > 0 ? `${wr.toFixed(0)}%` : "65%+",
-      label: live && monthTotal > 0
-        ? (t.hero.stat_wr + " (live bulan ini)")
-        : t.hero.stat_wr,
+      icon: Coins,
+      value: monthTotal > 0 ? `${monthTotal}` : "Live",
+      label: monthTotal > 0
+        ? (locale === "id" ? "Trade Bulan Ini" : "Trades This Month")
+        : (locale === "id" ? "Track Record" : "Track Record"),
     },
     {
       icon: TrendingUp,
-      value: monthTotal > 0 ? `${monthPnl >= 0 ? "+" : ""}$${monthPnl.toFixed(2)}` : "+14.5R",
-      label: live && monthTotal > 0 ? "PnL bulan ini (live)" : t.hero.stat_profit,
+      value: monthTotal > 0 ? `${monthPnl >= 0 ? "+" : ""}$${monthPnl.toFixed(2)}` : "Real-Time",
+      label: monthTotal > 0
+        ? (locale === "id" ? "PnL Bulan Ini" : "PnL This Month")
+        : (locale === "id" ? "Dashboard" : "Dashboard"),
     },
     {
-      icon: Coins,
-      value: monthTotal > 0 ? `${monthTotal}` : "50+",
-      label: live && monthTotal > 0 ? "Trade bulan ini" : t.hero.stat_coins,
+      icon: Target,
+      value: monthTotal > 0 && wr > 0 ? `${wr.toFixed(0)}%` : "24/7",
+      label: monthTotal > 0
+        ? (locale === "id" ? "WR Live" : "Live WR")
+        : (locale === "id" ? "Otomatis" : "Automated"),
     },
   ];
 

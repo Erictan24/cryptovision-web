@@ -1,15 +1,38 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLang } from "./LanguageProvider";
 
+type LiveStats = {
+  all: { total: string; wins: string; net_pnl: string };
+};
+
 export default function Stats() {
-  const { t } = useLang();
+  const { t, locale } = useLang();
+  const [live, setLive] = useState<LiveStats | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.json())
+      .then((d) => { if (d.ok) setLive(d.stats); })
+      .catch(() => {});
+  }, []);
+
+  // Live data kalau ada, fallback ke generic descriptor (tidak claim WR/EV)
+  const allTotal = live ? parseInt(live.all.total || "0") : 0;
+  const allPnl   = live ? parseFloat(live.all.net_pnl || "0") : 0;
 
   const items = [
-    { value: "65.7%", label: t.stats.wr },
-    { value: "1,200+", label: t.stats.trades },
-    { value: "+0.29R", label: t.stats.ev },
+    {
+      value: allTotal > 0 ? `${allTotal}` : "100+",
+      label: locale === "id" ? "Trade Tracked" : "Trades Tracked",
+    },
+    {
+      value: allTotal > 0 ? `${allPnl >= 0 ? "+" : ""}$${allPnl.toFixed(0)}` : "Live",
+      label: locale === "id" ? "PnL Total" : "Total PnL",
+    },
+    { value: "Real-Time", label: locale === "id" ? "Dashboard" : "Dashboard" },
     { value: "24/7", label: t.stats.uptime },
   ];
 

@@ -50,6 +50,7 @@ export default function CheckoutPage() {
   const { locale } = useLang();
   const [plan, setPlan] = useState<string>("");
   const [method, setMethod] = useState("bca");
+  const [email, setEmail] = useState("");
   const [orderId, setOrderId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -77,6 +78,7 @@ export default function CheckoutPage() {
           plan,
           method,
           currency: isUSDT ? "usd" : "idr",
+          email: email.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -175,6 +177,30 @@ export default function CheckoutPage() {
               >
                 {locale === "id" ? "Ganti paket" : "Change plan"}
               </button>
+            </div>
+
+            {/* Email (optional) — untuk welcome email + notif penting */}
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5">
+              <label className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-semibold">
+                  {locale === "id" ? "Email" : "Email"}
+                </span>
+                <span className="text-[10px] text-[var(--color-text-muted)]">
+                  {locale === "id" ? "Opsional" : "Optional"}
+                </span>
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={locale === "id" ? "kamu@email.com" : "you@email.com"}
+                className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)] focus:outline-none"
+              />
+              <p className="mt-2 text-[11px] text-[var(--color-text-muted)]">
+                {locale === "id"
+                  ? "Untuk welcome email setelah subscription aktif. Tidak dipakai untuk marketing."
+                  : "For welcome email after subscription is active. Not used for marketing."}
+              </p>
             </div>
 
             {/* Payment Method */}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getSession } from "@/lib/auth";
-import { createOrderDb, getOrderDb, getOrdersByUserDb, updateOrderStatusDb } from "@/lib/db";
+import { createOrderDb, getOrderDb, getOrdersByUserDb, updateOrderStatusDb, setUserEmailDb } from "@/lib/db";
 
 const PLANS: Record<string, { name: string; priceIDR: string; priceUSD: string }> = {
   m1: { name: "Bot 1 Bulan", priceIDR: "Rp 449.000", priceUSD: "$35" },
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const user = await getSession();
   if (!user) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
-  const { plan, method, currency } = await req.json();
+  const { plan, method, currency, email } = await req.json();
   if (!plan || !PLANS[plan]) return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
 
   const planInfo = PLANS[plan];
@@ -23,6 +23,16 @@ export async function POST(req: NextRequest) {
   const id = `CV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
   await createOrderDb(id, user.id, user.name, plan, planInfo.name, amount, currency || "idr", method || "bca");
+
+  // Save email kalau user input valid — dipakai untuk welcome email saat
+  // subscription aktif. Optional, tidak block order kalau email tidak valid.
+  if (typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    try {
+      await setUserEmailDb(user.id, email.trim().toLowerCase());
+    } catch (e) {
+      console.warn("[orders] save email failed", e);
+    }
+  }
 
   return NextResponse.json({ ok: true, order: { id, plan, planName: planInfo.name, amount, method } });
 }

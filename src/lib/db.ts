@@ -17,9 +17,12 @@ export async function initDb() {
       name TEXT NOT NULL,
       username TEXT,
       photo TEXT,
+      email TEXT,
       created_at TIMESTAMP DEFAULT NOW()
     )
   `;
+  // Migration: add email column kalau tabel sudah ada dari versi lama
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS subscriptions (
@@ -444,6 +447,20 @@ export async function upsertUser(telegramId: number, name: string, username?: st
       username = EXCLUDED.username,
       photo = EXCLUDED.photo
   `;
+}
+
+/** Set user email (saat checkout submit) */
+export async function setUserEmailDb(telegramId: number, email: string) {
+  const sql = getDb();
+  await sql`UPDATE users SET email = ${email} WHERE telegram_id = ${telegramId}`;
+}
+
+/** Get user email (untuk welcome email setelah subscription aktif) */
+export async function getUserEmailDb(telegramId: number): Promise<string | null> {
+  const sql = getDb();
+  const rows = await sql`SELECT email FROM users WHERE telegram_id = ${telegramId} LIMIT 1`;
+  const row = rows[0] as { email: string | null } | undefined;
+  return row?.email || null;
 }
 
 /** Create order */

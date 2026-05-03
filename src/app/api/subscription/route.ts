@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getSession } from "@/lib/auth";
-import { setSubscriptionDb, getSubscriptionDb, upsertUser } from "@/lib/db";
+import { setSubscriptionDb, getSubscriptionDb, upsertUser, getUserEmailDb } from "@/lib/db";
+import { sendEmail, welcomeEmailHtml } from "@/lib/email";
 
 /** GET — check subscription status */
 export async function GET(req: NextRequest) {
@@ -34,5 +35,29 @@ export async function POST(req: NextRequest) {
 
   await setSubscriptionDb(userId, plan, planName);
   const sub = await getSubscriptionDb(userId);
+
+  // Send welcome email kalau user input email saat checkout. Best-effort,
+  // fail-silent (RESEND_API_KEY tidak set / error tidak block subscription).
+  try {
+    const email = await getUserEmailDb(userId);
+    if (email && sub) {
+      const expiresStr = new Date(sub.expires_at).toLocaleDateString("id-ID", {
+        day: "numeric", month: "long", year: "numeric",
+      });
+      const { subject, html } = welcomeEmailHtml({
+        userName: userName || "User",
+        planName: planName,
+        expiresAt: expiresStr,
+        locale: "id",
+      });
+      // Fire and forget — response cepat, email async
+      sendEmail({ to: email, subject, html }).catch((e) =>
+        console.warn("[subscription] welcome email send failed", e)
+      );
+    }
+  } catch (e) {
+    console.warn("[subscription] welcome email lookup failed", e);
+  }
+
   return NextResponse.json({ ok: true, subscription: sub });
 }

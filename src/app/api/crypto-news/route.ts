@@ -72,8 +72,11 @@ function stripHtml(s: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
     .replace(/&apos;/g, "'")
+    // Numeric entities: &#39; &#039; &#8217; etc
+    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCharCode(parseInt(dec, 10)))
+    // Hex entities: &#xAB; etc
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/\s+/g, " ")
     .trim();
 }

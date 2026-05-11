@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
-// 2026-05-07: switch dari CoinGecko News (sekarang PRO-only $129/mo)
-// ke CryptoCompare News API (free 250k calls/month dengan key gratis).
-// API doc: https://min-api.cryptocompare.com/documentation?key=News
-// UI struktur output GAK berubah — `items` schema sama persis.
+// 2026-05-12: RSS aggregator (CoinTelegraph + Decrypt + CoinDesk).
+// Replace CryptoCompare yang free tier expire May 21. RSS = gratis selamanya,
+// no API key, no rate limit. Schema output `items` tidak berubah — UI compatible.
 
 export const dynamic = "force-dynamic";
 export const revalidate = 600; // 10 menit cache
@@ -16,99 +15,164 @@ type NewsItem = {
   url: string;
   source: string;
   source_img: string;
-  published_at: number;
+  published_at: number; // unix seconds
   categories: string[];
 };
 
-type CryptoCompareNews = {
-  id: string;
-  guid?: string;
-  published_on: number;
-  imageurl?: string;
-  title: string;
-  url: string;
-  source?: string;
-  body?: string;
-  tags?: string;
-  categories?: string;
-  lang?: string;
-  source_info?: {
-    name?: string;
-    img?: string;
-    lang?: string;
-  };
-};
+const SOURCES: { name: string; url: string; img: string }[] = [
+  {
+    name: "CoinTelegraph",
+    url: "https://cointelegraph.com/rss",
+    img: "https://s3.cointelegraph.com/storage/uploads/view/b9ea15d46738b4df64e6e100ab59b373.png",
+  },
+  {
+    name: "Decrypt",
+    url: "https://decrypt.co/feed",
+    img: "https://decrypt.co/wp-content/themes/decrypt/assets/images/decrypt-icon-light.svg",
+  },
+  {
+    name: "CoinDesk",
+    url: "https://www.coindesk.com/arc/outboundfeeds/rss/",
+    img: "https://downloads.coindesk.com/arc/failsafe/feeds/coindesk-feed-logo.png",
+  },
+];
 
-type CryptoCompareResponse = {
-  Type: number;
-  Message?: string;
-  Data?: CryptoCompareNews[];
-  Response?: string;
-};
+// Extract content inside <tag>...</tag> or <tag><![CDATA[...]]></tag>
+function extractTag(xml: string, tag: string): string {
+  // Try CDATA first
+  const cdataRe = new RegExp(
+    `<${tag}[^>]*>\\s*<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>\\s*</${tag}>`,
+    "i"
+  );
+  const cdataMatch = xml.match(cdataRe);
+  if (cdataMatch) return cdataMatch[1].trim();
 
-export async function GET() {
-  const apiKey = process.env.CRYPTOCOMPARE_API_KEY || "";
+  // Fallback: plain text
+  const plainRe = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i");
+  const plainMatch = xml.match(plainRe);
+  if (plainMatch) return plainMatch[1].trim();
 
-  if (!apiKey) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "CRYPTOCOMPARE_API_KEY not configured",
-        hint: "Sign up gratis di https://min-api.cryptocompare.com/ lalu set CRYPTOCOMPARE_API_KEY di Vercel env",
-      },
-      { status: 500 }
-    );
+  return "";
+}
+
+// Extract attribute value from a self-closing or open tag, e.g. <media:content url="...">
+function extractAttr(xml: string, tag: string, attr: string): string {
+  const re = new RegExp(`<${tag}[^>]*\\b${attr}=["']([^"']+)["']`, "i");
+  const m = xml.match(re);
+  return m ? m[1] : "";
+}
+
+// Strip HTML tags + decode common entities
+function stripHtml(s: string): string {
+  return s
+    .replace(/<img[^>]*>/gi, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Try to find image URL — checks <media:content url> then first <img src> in description
+function extractImage(itemXml: string, descHtml: string): string {
+  const mediaUrl = extractAttr(itemXml, "media:content", "url");
+  if (mediaUrl) return mediaUrl;
+  const enclosureUrl = extractAttr(itemXml, "enclosure", "url");
+  if (enclosureUrl) return enclosureUrl;
+  const imgMatch = descHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return imgMatch ? imgMatch[1] : "";
+}
+
+function parseFeed(xml: string, src: { name: string; img: string }): NewsItem[] {
+  const items: NewsItem[] = [];
+  // Match all <item>...</item> blocks
+  const itemRe = /<item\b[^>]*>([\s\S]*?)<\/item>/gi;
+  let m: RegExpExecArray | null;
+  let idx = 0;
+  while ((m = itemRe.exec(xml)) !== null) {
+    const block = m[1];
+    const title = stripHtml(extractTag(block, "title"));
+    const linkRaw = extractTag(block, "link");
+    const link = linkRaw.replace(/^<!\[CDATA\[/, "").replace(/\]\]>$/, "").trim();
+    const pubDate = extractTag(block, "pubDate");
+    const descHtml = extractTag(block, "description");
+    const desc = stripHtml(descHtml).slice(0, 280);
+
+    // Categories: collect up to 3
+    const catRe = /<category\b[^>]*>(?:<!\[CDATA\[)?([^<\]]+?)(?:\]\]>)?<\/category>/gi;
+    const cats: string[] = [];
+    let cm: RegExpExecArray | null;
+    while ((cm = catRe.exec(block)) !== null && cats.length < 3) {
+      const c = cm[1].trim();
+      if (c) cats.push(c);
+    }
+
+    const ts = pubDate ? Math.floor(new Date(pubDate).getTime() / 1000) : 0;
+    if (!title || !link || !ts) {
+      idx++;
+      continue;
+    }
+
+    items.push({
+      id: `${src.name.toLowerCase()}-${ts}-${idx}`,
+      title,
+      body: desc,
+      image: extractImage(block, descHtml),
+      url: link,
+      source: src.name,
+      source_img: src.img,
+      published_at: ts,
+      categories: cats,
+    });
+    idx++;
   }
+  return items;
+}
 
+async function fetchSource(src: {
+  name: string;
+  url: string;
+  img: string;
+}): Promise<NewsItem[]> {
   try {
-    const url = "https://min-api.cryptocompare.com/data/v2/news/?lang=EN&excludeCategories=Sponsored";
-    const r = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Authorization": `Apikey ${apiKey}`,
-      },
+    const r = await fetch(src.url, {
+      headers: { "User-Agent": "Mozilla/5.0 (CryptoVisionBot)" },
       next: { revalidate: 600 },
     });
-
-    if (!r.ok) {
-      return NextResponse.json(
-        { ok: false, error: `fetch_failed_${r.status}` },
-        { status: 502 }
-      );
-    }
-
-    const data = (await r.json()) as CryptoCompareResponse;
-
-    if (data.Response === "Error") {
-      return NextResponse.json(
-        { ok: false, error: data.Message || "api_error" },
-        { status: 502 }
-      );
-    }
-
-    const raw: CryptoCompareNews[] = Array.isArray(data.Data) ? data.Data : [];
-
-    const items: NewsItem[] = raw.slice(0, 24).map((n) => ({
-      id: String(n.id),
-      title: n.title || "",
-      body: (n.body || "").slice(0, 280),
-      image: n.imageurl || "",
-      url: n.url,
-      source: n.source_info?.name || n.source || "Unknown",
-      source_img: n.source_info?.img || "",
-      published_at: n.published_on || Math.floor(Date.now() / 1000),
-      categories: (n.categories || "").split("|").filter(Boolean),
-    }));
-
-    return NextResponse.json({
-      ok: true,
-      items,
-      fetched_at: new Date().toISOString(),
-    });
-  } catch (err) {
-    return NextResponse.json(
-      { ok: false, error: String(err) },
-      { status: 500 }
-    );
+    if (!r.ok) return [];
+    const xml = await r.text();
+    return parseFeed(xml, src);
+  } catch {
+    return [];
   }
+}
+
+export async function GET() {
+  const all = await Promise.all(SOURCES.map(fetchSource));
+  const merged = all.flat();
+
+  // Sort by published_at desc
+  merged.sort((a, b) => b.published_at - a.published_at);
+
+  // Dedupe by URL (in case sources re-publish)
+  const seen = new Set<string>();
+  const unique: NewsItem[] = [];
+  for (const it of merged) {
+    if (seen.has(it.url)) continue;
+    seen.add(it.url);
+    unique.push(it);
+    if (unique.length >= 24) break;
+  }
+
+  return NextResponse.json({
+    ok: true,
+    items: unique,
+    fetched_at: new Date().toISOString(),
+    sources: SOURCES.map((s) => s.name),
+  });
 }

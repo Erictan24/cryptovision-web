@@ -24,6 +24,11 @@ function fmtUsd(n: number): string {
   return `${sign}$${n.toFixed(2)}`;
 }
 
+function fmtR(n: number): string {
+  const sign = n >= 0 ? "+" : "";
+  return `${sign}${n.toFixed(2)}R`;
+}
+
 function dateStr(iso: string, locale: "id" | "en"): string {
   return new Date(iso).toLocaleString(locale === "id" ? "id-ID" : "en-US", {
     day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
@@ -48,6 +53,7 @@ export default function HistoryPage() {
   const beps = trades?.filter((t) => +t.pnl_usd === 0).length || 0;
   const wr = total > 0 ? (wins / total) * 100 : 0;
   const totalPnl = trades?.reduce((s, t) => s + (+t.pnl_usd || 0), 0) || 0;
+  const totalPnlR = trades?.reduce((s, t) => s + (+t.pnl_r || 0), 0) || 0;
 
   return (
     <div>
@@ -79,14 +85,14 @@ export default function HistoryPage() {
           </div>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4">
             <div className="text-[10px] uppercase text-[var(--color-text-muted)]">Net PnL</div>
-            <div className={`mt-1 text-2xl font-bold ${totalPnl >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
-              {fmtUsd(totalPnl)}
+            <div className={`mt-1 text-2xl font-bold ${totalPnlR >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
+              {fmtR(totalPnlR)}
             </div>
           </div>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4">
             <div className="text-[10px] uppercase text-[var(--color-text-muted)]">Avg per Trade</div>
-            <div className={`mt-1 text-2xl font-bold ${totalPnl >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
-              {total > 0 ? fmtUsd(totalPnl / total) : "—"}
+            <div className={`mt-1 text-2xl font-bold ${totalPnlR >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
+              {total > 0 ? fmtR(totalPnlR / total) : "—"}
             </div>
           </div>
         </div>
@@ -164,7 +170,7 @@ export default function HistoryPage() {
                         </span>
                       </td>
                       <td className={`py-3 px-4 text-right font-bold ${isWin ? "text-[var(--color-success)]" : isLoss ? "text-[var(--color-danger)]" : "text-[var(--color-text-muted)]"}`}>
-                        {fmtUsd(+t.pnl_usd)}
+                        {fmtR(+t.pnl_r)}
                       </td>
                     </tr>
                   );

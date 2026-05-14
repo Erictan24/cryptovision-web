@@ -13,6 +13,7 @@ type Summary = {
   wins: number;
   losses: number;
   avg_r: number | null;
+  net_pnl_r: number | null;
   net_pnl_usd: number | null;
   avg_pnl_usd: number | null;
   best_r: number | null;
@@ -23,6 +24,7 @@ type Bucket = {
   total: number;
   wins: number;
   avg_r: number | null;
+  net_pnl_r: number | null;
   net_pnl_usd: number | null;
 };
 
@@ -163,7 +165,7 @@ export default function StatisticsPage() {
   ];
 
   const evColor    = (s.avg_r ?? 0) >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]";
-  const pnlColor   = (s.net_pnl_usd ?? 0) >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]";
+  const pnlColor   = (s.net_pnl_r ?? 0) >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]";
 
   return (
     <div>
@@ -207,9 +209,9 @@ export default function StatisticsPage() {
 
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4">
           <div className="text-[10px] uppercase text-[var(--color-text-muted)]">Net PnL</div>
-          <div className={`mt-1 text-3xl font-bold ${pnlColor}`}>{fmtUsd(s.net_pnl_usd)}</div>
+          <div className={`mt-1 text-3xl font-bold ${pnlColor}`}>{fmtR(s.net_pnl_r)}</div>
           <div className="mt-1 text-[11px] text-[var(--color-text-muted)]">
-            {locale === "id" ? "Avg " : "Avg "}{fmtUsd(s.avg_pnl_usd)} {locale === "id" ? "/trade" : "/trade"}
+            {locale === "id" ? "Avg " : "Avg "}{fmtR(s.avg_r)} {locale === "id" ? "/trade" : "/trade"}
           </div>
         </div>
       </div>
@@ -300,7 +302,7 @@ function BreakdownTable({
   locale,
 }: {
   title: string;
-  rows: Array<{ label: string; total: number; wins: number; avg_r: number | null; net_pnl_usd: number | null }>;
+  rows: Array<{ label: string; total: number; wins: number; avg_r: number | null; net_pnl_r: number | null; net_pnl_usd: number | null }>;
   locale: "id" | "en";
 }) {
   return (
@@ -325,14 +327,14 @@ function BreakdownTable({
             {rows.map((r) => {
               const wr = r.total > 0 ? (r.wins / r.total) * 100 : 0;
               const evColor  = (r.avg_r ?? 0) >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]";
-              const pnlColor = (r.net_pnl_usd ?? 0) >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]";
+              const pnlColor = (r.net_pnl_r ?? 0) >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]";
               return (
                 <tr key={r.label} className="border-b border-[var(--color-border)]/40 last:border-0">
                   <td className="py-2 font-semibold uppercase">{r.label}</td>
                   <td className="py-2 text-right">{r.total}</td>
                   <td className="py-2 text-right">{wr.toFixed(0)}%</td>
                   <td className={`py-2 text-right font-semibold ${evColor}`}>{fmtR(r.avg_r)}</td>
-                  <td className={`py-2 text-right font-semibold ${pnlColor}`}>{fmtUsd(r.net_pnl_usd)}</td>
+                  <td className={`py-2 text-right font-semibold ${pnlColor}`}>{fmtR(r.net_pnl_r)}</td>
                 </tr>
               );
             })}

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useLang } from "./LanguageProvider";
 
 type LiveStats = {
-  all: { total: string; wins: string; net_pnl: string; avg_r: string | null };
+  all: { total: string; wins: string; net_pnl: string; net_pnl_r: string | null; avg_r: string | null };
 };
 
 export default function Stats() {
@@ -22,7 +22,9 @@ export default function Stats() {
   // Live data kalau ada, fallback ke generic descriptor (tidak claim).
   // Card 3 = EV per trade (avg R), informatif tanpa kesan iklan.
   const allTotal = live ? parseInt(live.all.total || "0") : 0;
-  const allPnl   = live ? parseFloat(live.all.net_pnl || "0") : 0;
+  const allPnlR  = live && live.all.net_pnl_r != null
+    ? parseFloat(String(live.all.net_pnl_r))
+    : 0;
   const allAvgR  = live && live.all.avg_r != null
     ? parseFloat(String(live.all.avg_r))
     : null;
@@ -34,7 +36,7 @@ export default function Stats() {
     },
     {
       value: allTotal > 0
-        ? `${allPnl >= 0 ? "+" : ""}$${Math.abs(allPnl) >= 10 ? allPnl.toFixed(0) : allPnl.toFixed(2)}`
+        ? `${allPnlR >= 0 ? "+" : ""}${allPnlR.toFixed(2)}R`
         : "Live",
       label: locale === "id" ? "PnL Total" : "Total PnL",
     },

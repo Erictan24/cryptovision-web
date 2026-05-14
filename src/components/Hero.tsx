@@ -6,9 +6,9 @@ import { ArrowRight, TrendingUp, Target, Coins } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 
 type LiveStats = {
-  today: { total: string; wins: string; net_pnl: string; avg_r: string | null };
-  month: { total: string; wins: string; net_pnl: string; avg_r: string | null };
-  all:   { total: string; wins: string; net_pnl: string; avg_r: string | null };
+  today: { total: string; wins: string; net_pnl: string; net_pnl_r: string | null; avg_r: string | null };
+  month: { total: string; wins: string; net_pnl: string; net_pnl_r: string | null; avg_r: string | null };
+  all:   { total: string; wins: string; net_pnl: string; net_pnl_r: string | null; avg_r: string | null };
 };
 
 export default function Hero() {
@@ -25,7 +25,9 @@ export default function Hero() {
   // Live stats (kalau ada data live) — tampilkan angka apa adanya, tidak claim.
   // Card 3: EV per trade (rata-rata R per trade) — informatif, bukan ad copy.
   const monthTotal = live ? parseInt(live.month.total || "0") : 0;
-  const monthPnl   = live ? parseFloat(live.month.net_pnl || "0") : 0;
+  const monthPnlR  = live && live.month.net_pnl_r != null
+    ? parseFloat(String(live.month.net_pnl_r))
+    : 0;
   const monthAvgR  = live && live.month.avg_r != null
     ? parseFloat(String(live.month.avg_r))
     : null;
@@ -40,7 +42,7 @@ export default function Hero() {
     },
     {
       icon: TrendingUp,
-      value: monthTotal > 0 ? `${monthPnl >= 0 ? "+" : ""}$${monthPnl.toFixed(2)}` : "Real-Time",
+      value: monthTotal > 0 ? `${monthPnlR >= 0 ? "+" : ""}${monthPnlR.toFixed(2)}R` : "Real-Time",
       label: monthTotal > 0
         ? (locale === "id" ? "PnL Bulan Ini" : "PnL This Month")
         : (locale === "id" ? "Dashboard" : "Dashboard"),

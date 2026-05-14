@@ -363,6 +363,7 @@ export async function getDetailedStatsDb() {
       SUM(CASE WHEN pnl_usd > 0                                   THEN 1 ELSE 0 END)::int AS wins,
       SUM(CASE WHEN pnl_usd < 0                                   THEN 1 ELSE 0 END)::int AS losses,
       AVG(pnl_r)::float                                                          AS avg_r,
+      SUM(pnl_r)::float                                                          AS net_pnl_r,
       SUM(pnl_usd)::float                                                        AS net_pnl_usd,
       AVG(pnl_usd)::float                                                        AS avg_pnl_usd,
       MAX(pnl_r)::float                                                          AS best_r,
@@ -377,6 +378,7 @@ export async function getDetailedStatsDb() {
       COUNT(*)::int                                          AS total,
       SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END)::int      AS wins,
       AVG(pnl_r)::float                                      AS avg_r,
+      SUM(pnl_r)::float                                      AS net_pnl_r,
       SUM(pnl_usd)::float                                    AS net_pnl_usd
     FROM trades
     GROUP BY strategy
@@ -390,6 +392,7 @@ export async function getDetailedStatsDb() {
       COUNT(*)::int                                          AS total,
       SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END)::int      AS wins,
       AVG(pnl_r)::float                                      AS avg_r,
+      SUM(pnl_r)::float                                      AS net_pnl_r,
       SUM(pnl_usd)::float                                    AS net_pnl_usd
     FROM trades
     GROUP BY quality
@@ -403,6 +406,7 @@ export async function getDetailedStatsDb() {
       COUNT(*)::int                                          AS total,
       SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END)::int      AS wins,
       AVG(pnl_r)::float                                      AS avg_r,
+      SUM(pnl_r)::float                                      AS net_pnl_r,
       SUM(pnl_usd)::float                                    AS net_pnl_usd
     FROM trades
     GROUP BY direction
@@ -420,17 +424,17 @@ export async function getPerformanceStatsDb() {
   const sql = getDb();
   const today = await sql`
     SELECT COUNT(*) AS total, SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END) AS wins,
-           SUM(pnl_usd) AS net_pnl, AVG(pnl_r) AS avg_r
+           SUM(pnl_usd) AS net_pnl, SUM(pnl_r) AS net_pnl_r, AVG(pnl_r) AS avg_r
     FROM trades WHERE closed_at >= CURRENT_DATE
   `;
   const month = await sql`
     SELECT COUNT(*) AS total, SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END) AS wins,
-           SUM(pnl_usd) AS net_pnl, AVG(pnl_r) AS avg_r
+           SUM(pnl_usd) AS net_pnl, SUM(pnl_r) AS net_pnl_r, AVG(pnl_r) AS avg_r
     FROM trades WHERE closed_at >= DATE_TRUNC('month', CURRENT_DATE)
   `;
   const all = await sql`
     SELECT COUNT(*) AS total, SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END) AS wins,
-           SUM(pnl_usd) AS net_pnl, AVG(pnl_r) AS avg_r
+           SUM(pnl_usd) AS net_pnl, SUM(pnl_r) AS net_pnl_r, AVG(pnl_r) AS avg_r
     FROM trades
   `;
   return { today: today[0], month: month[0], all: all[0] };

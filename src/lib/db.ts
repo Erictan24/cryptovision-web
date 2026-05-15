@@ -367,7 +367,9 @@ export async function getDetailedStatsDb() {
       SUM(pnl_usd)::float                                                        AS net_pnl_usd,
       AVG(pnl_usd)::float                                                        AS avg_pnl_usd,
       MAX(pnl_r)::float                                                          AS best_r,
-      MIN(pnl_r)::float                                                          AS worst_r
+      MIN(pnl_r)::float                                                          AS worst_r,
+      (SELECT symbol FROM trades ORDER BY pnl_r DESC NULLS LAST LIMIT 1)         AS best_symbol,
+      (SELECT symbol FROM trades ORDER BY pnl_r ASC NULLS LAST LIMIT 1)          AS worst_symbol
     FROM trades
   `;
 

@@ -18,6 +18,8 @@ type Summary = {
   avg_pnl_usd: number | null;
   best_r: number | null;
   worst_r: number | null;
+  best_symbol: string | null;
+  worst_symbol: string | null;
 };
 
 type Bucket = {
@@ -260,14 +262,20 @@ export default function StatisticsPage() {
             <TrendingUp size={12} />
             {locale === "id" ? "Trade Terbaik" : "Best Trade"}
           </div>
-          <div className="mt-1 text-2xl font-bold text-[var(--color-success)]">{fmtR(s.best_r)}</div>
+          <div className="mt-1 text-2xl font-bold text-[var(--color-success)]">
+            {fmtR(s.best_r)}
+            {s.best_symbol && <span className="ml-2 text-sm font-semibold opacity-70">{s.best_symbol}</span>}
+          </div>
         </div>
         <div className="rounded-2xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 p-4">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase text-[var(--color-danger)]">
             <TrendingDown size={12} />
             {locale === "id" ? "Trade Terburuk" : "Worst Trade"}
           </div>
-          <div className="mt-1 text-2xl font-bold text-[var(--color-danger)]">{fmtR(s.worst_r)}</div>
+          <div className="mt-1 text-2xl font-bold text-[var(--color-danger)]">
+            {fmtR(s.worst_r)}
+            {s.worst_symbol && <span className="ml-2 text-sm font-semibold opacity-70">{s.worst_symbol}</span>}
+          </div>
         </div>
       </div>
 

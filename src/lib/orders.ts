@@ -55,9 +55,9 @@ export function getOrdersByUser(userId: number): Order[] {
 }
 
 export const PLANS: Record<string, { name: string; priceIDR: string; priceUSD: string; amountIDR: number }> = {
-  m1: { name: "Bot 1 Bulan", priceIDR: "Rp 449.000", priceUSD: "$35", amountIDR: 449000 },
-  m3: { name: "Bot 3 Bulan", priceIDR: "Rp 999.000", priceUSD: "$79", amountIDR: 999000 },
-  y1: { name: "Bot 1 Tahun", priceIDR: "Rp 2.999.000", priceUSD: "$239", amountIDR: 2999000 },
-  lt: { name: "Bot Lifetime", priceIDR: "Rp 4.999.000", priceUSD: "$399", amountIDR: 4999000 },
+  m1: { name: "Bot 1 Bulan", priceIDR: "Rp 199.000", priceUSD: "$13", amountIDR: 199000 },
+  m3: { name: "Bot 3 Bulan", priceIDR: "Rp 499.000", priceUSD: "$32", amountIDR: 499000 },
+  y1: { name: "Bot 1 Tahun", priceIDR: "Rp 1.499.000", priceUSD: "$95", amountIDR: 1499000 },
+  lt: { name: "Bot Lifetime", priceIDR: "Rp 2.999.000", priceUSD: "$189", amountIDR: 2999000 },
   indicator: { name: "Indikator TradingView", priceIDR: "Rp 199.000", priceUSD: "$15", amountIDR: 199000 },
 };

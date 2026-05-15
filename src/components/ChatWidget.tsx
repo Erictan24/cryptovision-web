@@ -9,8 +9,8 @@ import { useLang } from "./LanguageProvider";
 const REPLY_RULES: Array<{ keywords: string[]; id: string; en: string }> = [
   // Pricing
   { keywords: ["harga", "price", "biaya", "cost", "berapa", "how much", "tarif", "paket", "plan"],
-    id: "Kami punya 4 paket:\n• FREE — signal delay, 5 coin\n• 1 Bulan — Rp 449k ($35)\n• 3 Bulan — Rp 999k ($79), hemat 26%\n• 1 Tahun — Rp 2.999k ($239), hemat 44%\n• Lifetime — Rp 4.999k ($399)\n\nCek detail di halaman Harga!",
-    en: "We have 4 plans:\n• FREE — delayed signals, 5 coins\n• 1 Month — $35\n• 3 Months — $79 (save 26%)\n• 1 Year — $239 (save 44%)\n• Lifetime — $399\n\nCheck the Pricing page for details!" },
+    id: "Kami punya 5 paket:\n• FREE — signal delay, 5 coin\n• 1 Bulan — Rp 199k ($13)\n• 3 Bulan — Rp 499k ($32), hemat 17%\n• 1 Tahun — Rp 1.499k ($95), hemat 37%\n• Lifetime — Rp 2.999k ($189)\n\nCek detail di halaman Harga!",
+    en: "We have 5 plans:\n• FREE — delayed signals, 5 coins\n• 1 Month — $13\n• 3 Months — $32 (save 17%)\n• 1 Year — $95 (save 37%)\n• Lifetime — $189\n\nCheck the Pricing page for details!" },
   // Payment
   { keywords: ["bayar", "pay", "payment", "transfer", "bca", "dana", "gopay", "usdt", "pembayaran"],
     id: "Metode pembayaran yang tersedia:\n• BCA Transfer\n• Dana\n• GoPay\n• USDT (BEP20)\n\nPilih saat checkout, transfer manual lalu konfirmasi via Telegram.",

@@ -1,21 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Zap, TrendingUp, BarChart3, Check } from "lucide-react";
+import { TrendingUp, Check } from "lucide-react";
 import { useLang } from "./LanguageProvider";
 
 export default function Features() {
   const { t } = useLang();
 
   const cards = [
-    {
-      icon: Zap,
-      title: t.features.scalp_title,
-      desc: t.features.scalp_desc,
-      features: [t.features.scalp_f1, t.features.scalp_f2, t.features.scalp_f3, t.features.scalp_f4],
-      accent: "from-blue-500 to-cyan-400",
-      badge: null,
-    },
     {
       icon: TrendingUp,
       title: t.features.swing_title,
@@ -43,7 +35,7 @@ export default function Features() {
         </motion.div>
 
         {/* Cards */}
-        <div className="mt-14 grid gap-6 sm:grid-cols-2 max-w-3xl mx-auto">
+        <div className="mt-14 grid gap-6 max-w-md mx-auto">
           {cards.map((c, i) => (
             <motion.div
               key={c.title}

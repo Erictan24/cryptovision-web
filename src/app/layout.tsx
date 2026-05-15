@@ -7,7 +7,7 @@ import "./globals.css";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://cryptovision-web.vercel.app";
 const SITE_NAME = "CryptoVision";
 const SITE_DESCRIPTION =
-  "Bot trading crypto futures otomatis 24/7. Sinyal swing & scalp, dashboard real-time, transparansi performa lengkap.";
+  "Bot trading crypto futures otomatis 24/7. Sinyal swing trading, dashboard real-time, transparansi performa lengkap.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -23,7 +23,6 @@ export const metadata: Metadata = {
     "trading futures otomatis",
     "sinyal cryptocurrency",
     "swing trading bot",
-    "scalp trading",
     "auto trade crypto",
     "trading bot Indonesia",
   ],

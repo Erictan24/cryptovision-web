@@ -35,10 +35,10 @@ const REPLY_RULES: Array<{ keywords: string[]; id: string; en: string }> = [
   { keywords: ["cara", "how", "gimana", "bagaimana", "kerja", "work", "pakai", "use", "setup", "mulai"],
     id: "Cara kerja CryptoVision:\n1. Daftar & pilih paket\n2. Connect exchange via API key\n3. Bot otomatis analisa market 24/7\n4. Bot entry saat ada peluang\n5. Trailing stop otomatis lock profit\n\nKamu tinggal duduk santai!",
     en: "How CryptoVision works:\n1. Sign up & choose a plan\n2. Connect exchange via API key\n3. Bot analyzes market 24/7 automatically\n4. Bot enters when opportunity arises\n5. Auto trailing stop locks profit\n\nJust sit back and relax!" },
-  // Scalping vs Swing
-  { keywords: ["scalping", "scalp", "swing", "beda", "difference", "timeframe", "strategi", "strategy"],
-    id: "Perbedaan Scalping vs Swing:\n\n• Scalping: timeframe 15m, profit kecil tapi sering, ~2 trade/hari\n• Swing: timeframe 1H+4H, profit besar per trade, ~1.7 trade/hari\n\nDengan paket kami kamu dapat DUA-DUANYA, jadi peluang lebih banyak!",
-    en: "Scalping vs Swing difference:\n\n• Scalping: 15m timeframe, small frequent profits, ~2 trades/day\n• Swing: 1H+4H timeframe, bigger profits per trade, ~1.7 trades/day\n\nWith our plan you get BOTH, so more opportunities!" },
+  // Swing strategy
+  { keywords: ["swing", "timeframe", "strategi", "strategy", "1h", "4h"],
+    id: "Bot Swing kami:\n\n• Timeframe: 1H + 4H (analisa multi-timeframe)\n• Target profit: 1.5–3R per trade\n• Holding: beberapa jam sampai beberapa hari\n• Frekuensi: sekitar 20-25 trade/bulan\n• Filter data-driven minimize false signal\n\nDirancang untuk capture momentum besar, bukan noise harian.",
+    en: "Our Swing Bot:\n\n• Timeframe: 1H + 4H (multi-timeframe analysis)\n• Target profit: 1.5–3R per trade\n• Holding: hours to days\n• Frequency: ~20-25 trades/month\n• Data-driven filters minimize false signals\n\nDesigned to capture big momentum, not daily noise." },
   // Risk
   { keywords: ["risiko", "risk", "rugi", "loss", "bahaya", "danger", "sl", "stop loss"],
     id: "Manajemen risiko kami:\n• Risk per trade bisa diatur ($1-$50)\n• Stop Loss otomatis di setiap trade\n• Trailing stop lock profit bertahap\n• Max 5 posisi bersamaan\n• Daily loss limit untuk proteksi\n• Circuit breaker: stop setelah 2 SL beruntun",

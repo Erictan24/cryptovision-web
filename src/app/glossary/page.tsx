@@ -113,11 +113,11 @@ const TERMS: Term[] = [
     },
   },
   {
-    term: "Swing vs Scalp",
-    short: { id: "Strategi durasi panjang vs cepat", en: "Long-duration vs fast-duration strategy" },
+    term: "Swing Trading",
+    short: { id: "Strategi capture trend besar di 1H+4H", en: "Capture major trends on 1H+4H" },
     full: {
-      id: "Swing = TF 1H+4H, hold beberapa jam–hari, target 1.5–3R. Scalp = TF 5m–15m, hold menit–jam, target 1–2R, frekuensi tinggi.",
-      en: "Swing = 1H+4H timeframes, hold hours–days, target 1.5–3R. Scalp = 5m–15m, hold minutes–hours, target 1–2R, high frequency.",
+      id: "Swing = TF 1H+4H, hold beberapa jam–hari, target 1.5–3R per trade. Multi-timeframe analysis untuk filter false signal, frekuensi sekitar 20-25 trade/bulan.",
+      en: "Swing = 1H+4H timeframes, hold hours–days, target 1.5–3R per trade. Multi-timeframe analysis to filter false signals, ~20-25 trades/month frequency.",
     },
   },
   {

@@ -30,7 +30,7 @@ const websiteLd = {
   name: "CryptoVision",
   url: SITE_URL,
   description:
-    "Bot trading crypto futures otomatis 24/7. Sinyal swing & scalp, dashboard real-time, transparansi performa lengkap.",
+    "Bot trading crypto futures otomatis 24/7. Sinyal swing trading, dashboard real-time, transparansi performa lengkap.",
   inLanguage: "id-ID",
   potentialAction: {
     "@type": "SearchAction",
@@ -46,7 +46,7 @@ const softwareLd = {
   applicationCategory: "FinanceApplication",
   operatingSystem: "Web, Telegram",
   description:
-    "Bot trading crypto otomatis dengan sinyal swing dan scalp. Eksekusi 24/7 di akun exchange pengguna, dashboard real-time, riwayat performa transparan.",
+    "Bot trading crypto otomatis dengan sinyal swing trading multi-timeframe. Eksekusi 24/7 di akun exchange pengguna, dashboard real-time, riwayat performa transparan.",
   offers: {
     "@type": "Offer",
     priceCurrency: "IDR",

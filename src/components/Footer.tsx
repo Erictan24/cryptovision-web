@@ -67,11 +67,6 @@ export default function Footer() {
             <ul className="mt-3 space-y-2 text-sm text-[var(--color-text-muted)]">
               <li>
                 <a href="#features" className="transition hover:text-[var(--color-accent-light)]">
-                  Bot Scalping
-                </a>
-              </li>
-              <li>
-                <a href="#features" className="transition hover:text-[var(--color-accent-light)]">
                   Bot Swing
                 </a>
               </li>

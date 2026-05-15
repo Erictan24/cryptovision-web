@@ -112,8 +112,8 @@ export default function SignalsPage() {
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-8 text-center">
           <p className="text-sm text-[var(--color-text-muted)]">
             {locale === "id"
-              ? "Belum ada sinyal. Bot scan tiap 30 menit (swing) dan 15 menit (scalp)."
-              : "No signals yet. Bot scans every 30min (swing) and 15min (scalp)."}
+              ? "Belum ada sinyal. Bot scan tiap 30 menit."
+              : "No signals yet. Bot scans every 30 minutes."}
           </p>
         </div>
       )}

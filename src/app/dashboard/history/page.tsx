@@ -85,14 +85,14 @@ export default function HistoryPage() {
           </div>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4">
             <div className="text-[10px] uppercase text-[var(--color-text-muted)]">Net PnL</div>
-            <div className={`mt-1 text-2xl font-bold ${totalPnlR >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
-              {fmtR(totalPnlR)}
+            <div className={`mt-1 text-2xl font-bold ${totalPnl >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
+              {fmtUsd(totalPnl)}
             </div>
           </div>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4">
             <div className="text-[10px] uppercase text-[var(--color-text-muted)]">Avg per Trade</div>
-            <div className={`mt-1 text-2xl font-bold ${totalPnlR >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
-              {total > 0 ? fmtR(totalPnlR / total) : "—"}
+            <div className={`mt-1 text-2xl font-bold ${totalPnl >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
+              {total > 0 ? fmtUsd(totalPnl / total) : "—"}
             </div>
           </div>
         </div>
@@ -170,7 +170,7 @@ export default function HistoryPage() {
                         </span>
                       </td>
                       <td className={`py-3 px-4 text-right font-bold ${isWin ? "text-[var(--color-success)]" : isLoss ? "text-[var(--color-danger)]" : "text-[var(--color-text-muted)]"}`}>
-                        {fmtR(+t.pnl_r)}
+                        {fmtUsd(+t.pnl_usd)}
                       </td>
                     </tr>
                   );
